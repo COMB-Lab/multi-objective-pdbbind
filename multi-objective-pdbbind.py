@@ -22,7 +22,7 @@ Converted from Jupyter notebook: Test2_PDBbind_10_structures.ipynb
 # ============================================================================
 
 import os
-#import conda_installer
+import conda_installer
 
 # Set CUDA environment variables (must come BEFORE importing TensorFlow)
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3"
@@ -62,7 +62,7 @@ from tensorflow.keras.optimizers import Adam
 
 class DatasetConfig:
     """Configuration class for dataset and memory management."""
-    def __init__(self, dataset_size=100, max_padding=98, batch_size=2, 
+    def __init__(self, dataset_size=100, max_padding=3000, batch_size=8, 
                  epochs=100, memory_limit_gb=16, preserve_full_structures=True):
         self.dataset_size = dataset_size
         self.max_padding = max_padding  # Maximum atoms to pad to
@@ -95,9 +95,8 @@ def load_data(config):
     print(f"Loading data for {config.dataset_size} structures...")
     print(f"Memory limit: {config.memory_limit_gb} GB")
     
-    df = pd.read_csv('/home/lvarga57/pdb-multiloss-bfe/multiloss-bfe/multiloss_pdbbind/Datasets/pdbbind_100.csv')
-    PDBs = pickle.load(open('/home/lvarga57/pdb-multiloss-bfe/multiloss-bfe/multiloss_pdbbind/Datasets/PDBBind_100.pkl', 'rb'))
-    
+    df = pd.read_csv('/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/Datasets/pdbbind_100.csv')
+    PDBs = pickle.load(open('/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/Datasets/PDBBind_100.pkl', 'rb'))
     # Clean and validate data
     print(f"Original dataset size: {len(df)}")
     
@@ -346,7 +345,8 @@ class PGGCNModel(tf.keras.Model):
             return conv_output
         
         # Process all samples in the batch with graph convolution
-        x = tf.map_fn(process_sample_graph_conv, atom_features, dtype=tf.float32)
+        #x = tf.map_fn(process_sample_graph_conv, atom_features, dtype=tf.float32)
+        x = tf.map_fn(process_sample_graph_conv, atom_features, fn_output_signature=tf.float32)
         
         # Use the final dense layers
         x = self.dense1(x)
@@ -358,6 +358,8 @@ class PGGCNModel(tf.keras.Model):
         # Merge model prediction with physics information
         merged = tf.concat([model_var, physics_info], axis=1)
         out = self.dense7(merged)
+        # Add to enforce negative values (I think this is whats causing loss to be infinite?)
+        #out = -tf.exp(out)
         
         return tf.concat([out, physics_info], axis=1)
 
@@ -371,7 +373,7 @@ class LossComponentsCallback(tf.keras.callbacks.Callback):
         self.physical_losses = []
         self.total_losses = []
         self.learning_rates = []
-        self.model = model_instance
+        self.model_instance = model_instance
         
     def on_epoch_end(self, epoch, logs=None):
         """Called at the end of each epoch to log metrics."""
@@ -379,9 +381,9 @@ class LossComponentsCallback(tf.keras.callbacks.Callback):
         # Store the total loss
         self.total_losses.append(logs.get('loss'))
         
-        lr = self.model.optimizer.learning_rate
+        lr = self.model_instance.optimizer.learning_rate
         if isinstance(lr, tf.keras.optimizers.schedules.LearningRateSchedule):
-            lr = lr(self.model.optimizer.iterations)
+            lr = lr(self.model_instance.optimizer.iterations)
         
         self.learning_rates.append(float(tf.keras.backend.get_value(lr)))
         
@@ -770,8 +772,7 @@ def main():
                 y_train_array,
                 batch_size=config.batch_size,
                 epochs=config.epochs,
-                #callbacks=[early_stopping, loss_tracker],
-                callbacks=[],
+                callbacks=[early_stopping, loss_tracker],
                 verbose=1
             )
 

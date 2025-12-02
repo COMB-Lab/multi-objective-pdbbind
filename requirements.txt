@@ -1,0 +1,27 @@
+# PyTorch PGGCN - Physics-Guided Graph Convolutional Networks
+# For protein-ligand binding affinity prediction
+
+# Core ML Framework
+torch>=2.0.0
+numpy>=1.21.0
+pandas>=1.3.0
+scikit-learn>=1.0.0
+
+# Chemistry & Structure Processing
+rdkit>=2021.09.5
+deepchem>=2.6.0
+biopython>=1.78
+
+# Utilities
+psutil>=5.8.0
+
+# Optional: For GPU support (uncomment if needed)
+# torch-cuda-11.8 (install via: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118)
+
+# Optional: For analysis and visualization
+matplotlib>=3.4.0
+seaborn>=0.11.0
+
+# Optional: For Jupyter notebook support
+jupyter>=1.0.0
+ipython>=7.30.0

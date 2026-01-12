@@ -1,0 +1,61 @@
+Results/
+runs/
+logs/
+
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# PyTorch models (too large)
+*.pth
+*.pt
+
+# Data files (too large)  
+*.pkl
+*.pickle
+Datasets/*.pkl
+Datasets/*.csv
+
+# Results
+grid_search_results/*.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# PyTorch models (too large)
+*.pth
+*.pt
+saved_models/*.pth
+
+# Data files (too large)
+*.pkl
+*.pickle
+Datasets/*.pkl
+Datasets/*.csv
+
+# Results (optional, can be large)
+grid_search_results/*.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb

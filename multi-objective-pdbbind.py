@@ -739,6 +739,16 @@ def main():
             # Compile model
             opt = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
             m.compile(loss=combined_loss(physics_weight), optimizer=opt)
+            
+            # Check for regularization losses in model.losses
+            print(f"Number of regularization losses: {len(m.losses)}")
+            if len(m.losses) > 0:
+                total_reg = tf.add_n(m.losses)
+                print(f"Total regularization loss: {total_reg.numpy():.6e}")
+                
+                # Inspect individual losses
+                for i, loss in enumerate(m.losses):
+                    print(f"  Loss {i}: {loss.numpy():.6e}")
 
             # Prepare training data with adaptive padding
             input_shapes = [np.array(X_train[i]).shape[0] for i in range(len(X_train))]

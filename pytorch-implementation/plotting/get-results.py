@@ -8,6 +8,8 @@ Usage:
 
 import sys
 import torch
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def format_bytes(bytes_val):
@@ -123,6 +125,12 @@ def main():
     except Exception as e:
         print(f"Error loading checkpoint: {e}")
         sys.exit(1)
+        
+    df = pd.read_csv('/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/grid_search_results.csv')
+    plt.scatter(df['test_empirical'], df['test_physics'])
+    plt.xlabel('Empirical Loss')
+    plt.ylabel('Physics Loss')
+    plt.title('Pareto Front')
 
 
 if __name__ == "__main__":

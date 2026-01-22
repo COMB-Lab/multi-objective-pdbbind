@@ -292,7 +292,7 @@ class PhysicsInformedLoss(nn.Module):
     Custom loss function combining RMSE with physics consistency loss.
     """
 
-    def __init__(self, physics_consistency_weight=0.005):
+    def __init__(self, physics_consistency_weight=0.58):
         super(PhysicsInformedLoss, self).__init__()
         self.physics_consistency_weight = physics_consistency_weight
 
@@ -412,8 +412,8 @@ def load_all_data(info_csv_path, hostguest_dir, monitor=None):
     return X, y, df_all
 
 
-def train_model(model, X_train, y_train, X_val, y_val, epochs=250, lr=0.005, device='cpu',
-                physics_consistency_weight=0.005, l2_weight=1e-4, max_norm=3.0, 
+def train_model(model, X_train, y_train, X_val, y_val, epochs=250, lr=0.001, device='cpu',
+                physics_consistency_weight=0.58, l2_weight=1e-4, max_norm=3.0, 
                 early_stopping_patience=10, monitor=None):
     """
     Train the PGGCN model with all regularization components matching TensorFlow.
@@ -632,9 +632,9 @@ def main():
     train_losses, val_losses = train_model(
         model, X_train, y_train, X_test, y_test,
         epochs=250,
-        lr=0.005,
+        lr=0.001,
         device=device,
-        physics_consistency_weight=0.005,
+        physics_consistency_weight=0.58,
         l2_weight=1e-4,
         max_norm=3.0,
         early_stopping_patience=10,
@@ -672,7 +672,7 @@ def main():
     print("\n" + "-" * 80)
     print("Saving Model")
     print("-" * 80)
-    model_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/saved_models/hostguest_no_physical_loss_final.pth'
+    model_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/saved_models/hostguest_additive_loss.pth'
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
     
     total_script_time = time.time() - script_start_time
@@ -695,7 +695,6 @@ def main():
             'total_samples': len(X),
             'train_samples': len(X_train),
             'test_samples': len(X_test),
-            'random_seed': RANDOM_SEED,
         },
     }
     

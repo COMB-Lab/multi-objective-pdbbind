@@ -1,61 +1,51 @@
-Results/
+############################
+# Experiment outputs
+############################
+results/
 runs/
 logs/
+grid_search_results/
+saved_models/
 
-
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-
-# PyTorch models (too large)
+############################
+# PyTorch / model artifacts
+############################
 *.pth
 *.pt
 
-# Data files (too large)  
+############################
+# Data files (large)
+############################
 *.pkl
 *.pickle
 Datasets/*.pkl
 Datasets/*.csv
 
-# Results
-grid_search_results/*.json
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-
-# Python cache
+############################
+# Python
+############################
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# PyTorch models (too large)
-*.pth
-*.pt
-saved_models/*.pth
+############################
+# Jupyter
+############################
+.ipynb_checkpoints/
+*.ipynb
 
-# Data files (too large)
-*.pkl
-*.pickle
-Datasets/*.pkl
-Datasets/*.csv
-
-# Results (optional, can be large)
-grid_search_results/*.json
-
-# IDE
+############################
+# IDEs / editors
+############################
 .vscode/
 .idea/
 *.swp
 
-# OS
+############################
+# OS junk
+############################
 .DS_Store
-
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb
+Results/
+runs/
+logs/

@@ -1,0 +1,5 @@
+Metric,No PCGrad,PCGrad,Improvement
+Empirical Loss (RMSE),4.0142,4.0903,-0.0761
+MAE,3.12,3.3206,-0.2006
+R²,-8.6287,-8.9972,0.3686
+Physics Loss,14.8663,14.8054,0.0609

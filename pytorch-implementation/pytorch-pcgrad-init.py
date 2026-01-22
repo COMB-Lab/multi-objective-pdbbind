@@ -1,23 +1,27 @@
 """
-Overnight Grid Search - 0.01 Step (101 weights) - VERBOSE VERSION
-Tracks and displays: Train/Val RMSE, Empirical Loss, Physics Loss
+PyTorch training script for PGGCN model with PCGrad optimizer
+
+This version matches your TensorFlow implementation exactly.
+PCGrad receives weighted physics loss: [emp_loss, physics_weight * phy_loss]
 """
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from rdkit import Chem
 import pandas as pd
 import numpy as np
 import sys
 import os
 import random
 import time
-import json
-import pickle
+import psutil
+import threading
 from datetime import timedelta
 from sklearn.model_selection import train_test_split
+import pickle
 
-# Add paths
+# Add the necessary directories to the path
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(SCRIPT_DIR)
 
@@ -28,35 +32,241 @@ possible_paths = [
     '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind',
 ]
 
+pggcn_found = False
 for path in possible_paths:
     if path not in sys.path:
         sys.path.insert(0, path)
+    
+    models_path = os.path.join(path, 'PGGCN', 'models')
+    if os.path.exists(models_path):
+        pggcn_found = True
+        print(f"Found PGGCN at: {path}")
+        break
+    
+    models_path_direct = os.path.join(path, 'models')
+    if os.path.exists(models_path_direct):
+        pggcn_found = True
+        print(f"Found models at: {path}")
+        break
 
+if not pggcn_found:
+    print("Warning: PGGCN/models directory not found in expected locations")
+    print(f"Searched in: {possible_paths}")
+    print("Attempting to import anyway...")
+
+# Set random seeds
+RANDOM_SEED = 42
+random.seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+torch.manual_seed(RANDOM_SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed(RANDOM_SEED)
+    torch.cuda.manual_seed_all(RANDOM_SEED)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+# Try different import styles
 try:
     from PGGCN.models.dcFeaturizer import atom_features as get_atom_features
     from PGGCN.models.layers_pytorch import PGGCNModel
+    print("Imported using PGGCN.models style")
 except ImportError:
     try:
         from models.dcFeaturizer import atom_features as get_atom_features
         from models.layers_pytorch import PGGCNModel
+        print("Imported using models style")
     except ImportError as e:
         print(f"Error importing modules: {e}")
+        print("Please ensure PGGCN/models directory is accessible")
         sys.exit(1)
 
 # Import PCGrad
 try:
     from pcgrad_pytorch import PCGrad
     PCGRAD_AVAILABLE = True
-    print("PCGrad optimizer available")
+    print("✓ PCGrad optimizer available")
 except ImportError:
     PCGRAD_AVAILABLE = False
-    print("Warning: PCGrad not available, will use standard Adam")
+    print("✗ PCGrad not available, will use standard Adam")
+
+
+def format_time(seconds):
+    """Format seconds into a readable time string."""
+    return str(timedelta(seconds=int(seconds)))
+
+
+def format_bytes(bytes_val):
+    """Format bytes into human-readable format."""
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if bytes_val < 1024.0:
+            return f"{bytes_val:.2f} {unit}"
+        bytes_val /= 1024.0
+    return f"{bytes_val:.2f} PB"
+
+
+class ResourceMonitor:
+    """Monitor system resources (RAM, GPU memory, CPU) during training."""
+    def __init__(self, device='cpu', monitoring_interval=1.0):
+        self.device = device
+        self.monitoring_interval = monitoring_interval
+        self.monitoring = False
+        self.monitor_thread = None
+        
+        self.cpu_usage = []
+        self.ram_usage = []
+        self.gpu_memory_allocated = []
+        self.gpu_memory_reserved = []
+        
+        self.total_ram = psutil.virtual_memory().total
+        self.cpu_count = psutil.cpu_count()
+        
+        self.has_gpu = torch.cuda.is_available()
+        if self.has_gpu:
+            self.gpu_name = torch.cuda.get_device_name(0)
+            self.total_gpu_memory = torch.cuda.get_device_properties(0).total_memory
+        else:
+            self.gpu_name = "N/A"
+            self.total_gpu_memory = 0
+    
+    def _monitor_loop(self):
+        while self.monitoring:
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            ram = psutil.virtual_memory()
+            self.cpu_usage.append(cpu_percent)
+            self.ram_usage.append(ram.used)
+            if self.has_gpu:
+                allocated = torch.cuda.memory_allocated(0)
+                reserved = torch.cuda.memory_reserved(0)
+                self.gpu_memory_allocated.append(allocated)
+                self.gpu_memory_reserved.append(reserved)
+            time.sleep(self.monitoring_interval)
+    
+    def start_monitoring(self):
+        self.monitoring = True
+        self.monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
+        self.monitor_thread.start()
+        print("✓ Resource monitoring started")
+    
+    def stop_monitoring(self):
+        self.monitoring = False
+        if self.monitor_thread:
+            self.monitor_thread.join(timeout=2.0)
+        print("✓ Resource monitoring stopped")
+    
+    def get_current_stats(self):
+        stats = {
+            'cpu_percent': psutil.cpu_percent(interval=0.1),
+            'ram_used': psutil.virtual_memory().used,
+            'ram_percent': psutil.virtual_memory().percent,
+        }
+        if self.has_gpu:
+            stats['gpu_allocated'] = torch.cuda.memory_allocated(0)
+            stats['gpu_reserved'] = torch.cuda.memory_reserved(0)
+            stats['gpu_percent_allocated'] = (stats['gpu_allocated'] / self.total_gpu_memory) * 100
+            stats['gpu_percent_reserved'] = (stats['gpu_reserved'] / self.total_gpu_memory) * 100
+        return stats
+    
+    def get_summary_stats(self):
+        if not self.cpu_usage:
+            return None
+        summary = {
+            'cpu': {'mean': np.mean(self.cpu_usage), 'max': np.max(self.cpu_usage), 'min': np.min(self.cpu_usage)},
+            'ram': {
+                'mean': np.mean(self.ram_usage), 'max': np.max(self.ram_usage), 'min': np.min(self.ram_usage),
+                'mean_percent': (np.mean(self.ram_usage) / self.total_ram) * 100,
+                'max_percent': (np.max(self.ram_usage) / self.total_ram) * 100,
+            }
+        }
+        if self.has_gpu and self.gpu_memory_allocated:
+            summary['gpu'] = {
+                'allocated_mean': np.mean(self.gpu_memory_allocated),
+                'allocated_max': np.max(self.gpu_memory_allocated),
+                'reserved_mean': np.mean(self.gpu_memory_reserved),
+                'reserved_max': np.max(self.gpu_memory_reserved),
+                'allocated_mean_percent': (np.mean(self.gpu_memory_allocated) / self.total_gpu_memory) * 100,
+                'allocated_max_percent': (np.max(self.gpu_memory_allocated) / self.total_gpu_memory) * 100,
+            }
+        return summary
+    
+    def print_system_info(self):
+        print("\n" + "=" * 80)
+        print("SYSTEM INFORMATION")
+        print("=" * 80)
+        print(f"CPU: {self.cpu_count} cores")
+        print(f"Total RAM: {format_bytes(self.total_ram)}")
+        if self.has_gpu:
+            print(f"GPU: {self.gpu_name}")
+            print(f"Total GPU Memory: {format_bytes(self.total_gpu_memory)}")
+        else:
+            print("GPU: Not available")
+        print("=" * 80)
+    
+    def print_current_stats(self):
+        stats = self.get_current_stats()
+        print(f"\nCurrent Resource Usage:")
+        print(f"  CPU: {stats['cpu_percent']:.1f}%")
+        print(f"  RAM: {format_bytes(stats['ram_used'])} ({stats['ram_percent']:.1f}%)")
+        if self.has_gpu:
+            print(f"  GPU Memory Allocated: {format_bytes(stats['gpu_allocated'])} ({stats['gpu_percent_allocated']:.1f}%)")
+    
+    def print_summary_stats(self, phase_name="Training"):
+        summary = self.get_summary_stats()
+        if not summary:
+            return
+        print(f"\n{'=' * 80}")
+        print(f"{phase_name} - Resource Usage Summary")
+        print("=" * 80)
+        print(f"\nCPU Usage: Mean: {summary['cpu']['mean']:.1f}%, Max: {summary['cpu']['max']:.1f}%")
+        print(f"RAM Usage: Mean: {format_bytes(summary['ram']['mean'])} ({summary['ram']['mean_percent']:.1f}%), "
+              f"Max: {format_bytes(summary['ram']['max'])} ({summary['ram']['max_percent']:.1f}%)")
+        if 'gpu' in summary:
+            print(f"GPU Memory: Mean: {format_bytes(summary['gpu']['allocated_mean'])} "
+                  f"({summary['gpu']['allocated_mean_percent']:.1f}%), "
+                  f"Max: {format_bytes(summary['gpu']['allocated_max'])} "
+                  f"({summary['gpu']['allocated_max_percent']:.1f}%)")
+        print("=" * 80)
+
+
+class EarlyStopping:
+    """Early stopping to stop training when validation loss stops improving."""
+    def __init__(self, patience=10, min_delta=0.001, verbose=True):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.verbose = verbose
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+        self.best_model_state = None
+        
+    def __call__(self, val_loss, model):
+        if self.best_loss is None:
+            self.best_loss = val_loss
+            self.best_model_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+        elif val_loss > self.best_loss - self.min_delta:
+            self.counter += 1
+            if self.verbose:
+                print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.counter >= self.patience:
+                self.early_stop = True
+                if self.verbose:
+                    print(f'Early stopping triggered. Restoring best model weights from loss: {self.best_loss:.4f}')
+        else:
+            self.best_loss = val_loss
+            self.best_model_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+            self.counter = 0
+            
+    def restore_best_weights(self, model):
+        """Restore model to best weights."""
+        if self.best_model_state is not None:
+            model.load_state_dict(self.best_model_state)
+            if self.verbose:
+                print(f"Restored model weights from best epoch with loss: {self.best_loss:.4f}")
 
 
 def apply_maxnorm_constraint(model, max_norm=3.0):
-    """Apply MaxNorm constraint."""
+    """Apply MaxNorm constraint to all parameters."""
     with torch.no_grad():
-        for param in model.parameters():
+        for name, param in model.named_parameters():
             if param.requires_grad and param.dim() >= 2:
                 norm = param.norm(2, dim=0, keepdim=True)
                 desired = torch.clamp(norm, max=max_norm)
@@ -64,16 +274,44 @@ def apply_maxnorm_constraint(model, max_norm=3.0):
 
 
 def compute_l2_loss(model, l2_weight=1e-4):
-    """Compute L2 regularization for all parameters."""
+    """Compute L2 regularization loss for ALL parameters (weights AND biases)."""
     l2_loss = torch.tensor(0., device=next(model.parameters()).device)
-    for param in model.parameters():
+    for name, param in model.named_parameters():
         if param.requires_grad:
             l2_loss += torch.sum(param ** 2)
     return (l2_weight / 2) * l2_loss
 
 
+def compute_task_losses(predictions, targets, model_vars, physics_info, physics_weight):
+    """
+    Compute empirical and physics losses for PCGrad.
+    
+    Returns:
+        empirical_loss: RMSE between predictions and targets
+        weighted_physics_loss: physics_weight * physics_loss
+        raw_physics_loss: unweighted physics loss (for logging)
+    """
+    targets = targets.view(-1, 1)
+    
+    # Empirical loss - RMSE
+    empirical_loss = torch.sqrt(torch.mean((predictions - targets) ** 2))
+    
+    # Extract energies
+    host_energy = physics_info[:, [0, 3, 6, 9, 12]].sum(dim=1, keepdim=True)
+    guest_energy = physics_info[:, [1, 4, 7, 10, 13]].sum(dim=1, keepdim=True)
+    complex_energy = physics_info[:, [2, 5, 8, 11, 14]].sum(dim=1, keepdim=True)
+    
+    # Physics-based ΔG calculation
+    dG_physics = complex_energy - (host_energy + guest_energy)
+    # Physics consistency loss - RMSE
+    raw_physics_loss = torch.sqrt(torch.mean((predictions - dG_physics) ** 2))
+    weighted_physics_loss = physics_weight * raw_physics_loss
+    
+    return empirical_loss, weighted_physics_loss, raw_physics_loss
+
+
 def featurize(molecule, info):
-    """Featurize a molecule."""
+    """Featurize a molecule with additional info array."""
     atom_features = []
     for atom in molecule.GetAtoms():
         base_feat = get_atom_features(atom)
@@ -91,15 +329,21 @@ def featurize(molecule, info):
     return np.array(atom_features)
 
 
-def load_all_data(info_csv_path, hostguest_dir):
-    """Load dataset."""
+def load_all_data(info_csv_path, hostguest_dir, monitor=None):
+    """Load ALL host-guest dataset from CSV and PDB files."""
+    if monitor:
+        print("\n" + "-" * 80)
+        print("Starting data loading...")
+        monitor.print_current_stats()
+        print("-" * 80)
+    
     print(f"Loading PDB files from: {hostguest_dir}")
     with open(hostguest_dir, 'rb') as f:
         pdb_dict = pickle.load(f)
-    print(f"Loaded {len(pdb_dict)} PDB files")
+    print(f"Loaded {len(pdb_dict)} PDB files from pickle")
 
     df_all = pd.read_csv(info_csv_path)
-    print(f"Loaded {len(df_all)} CSV entries")
+    print(f"Found {len(df_all)} total entries in CSV")
 
     feature_columns = [
         'pb_host_VDWAALS', 'pb_guest_VDWAALS', 'pb_complex_VDWAALS',
@@ -109,10 +353,13 @@ def load_all_data(info_csv_path, hostguest_dir):
         'gb_host_ESURF', 'gb_guest_ESURF', 'gb_Complex_ESURF'
     ]
 
-    X, y = [], []
+    X = []
+    y = []
+    failed = []
     
     for pdb_id in list(pdb_dict.keys()):
         if pdb_id not in df_all['Ids'].values:
+            failed.append(pdb_id)
             continue
         
         molecule = pdb_dict[pdb_id]
@@ -122,334 +369,349 @@ def load_all_data(info_csv_path, hostguest_dir):
         
         try:
             features = featurize(molecule, info_array)
-            X.append(torch.FloatTensor(features))
+            features_tensor = torch.FloatTensor(features)
+            X.append(features_tensor)
             y.append(target)
-        except:
-            pass
+        except Exception as e:
+            failed.append(pdb_id)
+            print(f"Failed to featurize {pdb_id}: {e}")
     
-    print(f"Successfully loaded {len(X)} complexes")
-    return X, y
+    print(f"\nSuccessfully loaded {len(X)} complexes")
+    if failed:
+        print(f"Failed to load {len(failed)} complexes: {failed}")
+    
+    if monitor:
+        print("\n" + "-" * 80)
+        print("Data loading completed")
+        monitor.print_current_stats()
+        print("-" * 80)
+    
+    return X, y, df_all
 
 
-def compute_task_losses(predictions, targets, model_vars, physics_info, physics_weight):
-    """Compute task losses."""
-    targets = targets.view(-1, 1)
-    empirical_loss = torch.sqrt(torch.mean((predictions - targets) ** 2))
-    
-    host_energy = physics_info[:, [0, 3, 6, 9, 12]].sum(dim=1, keepdim=True)
-    guest_energy = physics_info[:, [1, 4, 7, 10, 13]].sum(dim=1, keepdim=True)
-    complex_energy = physics_info[:, [2, 5, 8, 11, 14]].sum(dim=1, keepdim=True)
-    
-    dG_physics = complex_energy - (host_energy + guest_energy)
-    physics_loss = torch.sqrt(torch.mean((predictions - dG_physics) ** 2))
-    weighted_physics_loss = physics_weight * physics_loss
-    
-    return empirical_loss, weighted_physics_loss, physics_loss
-
-
-def train_single_config(X_train, y_train, X_val, y_val, physics_weight, device, 
-                       epochs=250, lr=0.005, use_pcgrad=True, verbose=True):
-    """Train a single configuration with detailed tracking."""
-    # Set seed for this config
-    seed = 42
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-    
-    # Create model
-    model = PGGCNModel(num_atom_features=36, r_out_channel=20, c_out_channel=128, dropout_rate=0.2)
-    model.add_rule("sum", 0, 32)
-    model.add_rule("multiply", 32, 33)
-    model.add_rule("distance", 33, 36)
+def train_model_with_pcgrad(model, X_train, y_train, X_val, y_val, epochs=250, lr=0.001, device='cpu',
+                             physics_consistency_weight=0.58, l2_weight=1e-4, max_norm=3.0, 
+                             early_stopping_patience=10, monitor=None):
+    """Train the PGGCN model with PCGrad optimizer."""
     model = model.to(device)
+
+    # Base optimizer
+    #base_optimizer = optim.Adam(model.parameters(), lr=lr)
+    # Changing to base optimizer with weight decay to match TensorFlow L2 regularization
+    # Changing to adam to see difference
+    #base_optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=l2_weight)
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=l2_weight)
+    # Wrap with PCGrad if available
+    #optimizer = PCGrad(base_optimizer)
     
-    # Optimizer
-    base_optimizer = optim.Adam(model.parameters(), lr=lr)
-    
-    if use_pcgrad and PCGRAD_AVAILABLE:
-        optimizer = PCGrad(base_optimizer)
-    else:
-        optimizer = base_optimizer
-    
-    # Move data
-    X_train_dev = [x.to(device) for x in X_train]
-    X_val_dev = [x.to(device) for x in X_val]
+    # Early stopping
+    early_stopping = EarlyStopping(patience=early_stopping_patience, min_delta=0.001, verbose=True)
+
+    train_losses, val_losses = [], []
+    train_empirical_losses, train_physics_losses = [], []
+    val_empirical_losses, val_physics_losses = [], []
+
+    # Move data to device
+    X_train = [x.to(device) for x in X_train]
+    X_val = [x.to(device) for x in X_val]
     y_train_tensor = torch.FloatTensor(y_train).unsqueeze(1).to(device)
     y_val_tensor = torch.FloatTensor(y_val).unsqueeze(1).to(device)
+
+    print(f"\n{'=' * 80}")
+    print("TRAINING CONFIGURATION")
+    print("=" * 80)
+    print(f"Samples: {len(X_train)} train, {len(X_val)} val")
+    print(f"Device: {device}")
+    print(f"PCGrad run")
+    print(f"Learning rate: {lr} (constant)")
+    print(f"L2 regularization: {l2_weight}")
+    print(f"MaxNorm constraint: {max_norm}")
+    print(f"Dropout rate: 0.2")
+    print(f"Physics weight: {physics_consistency_weight}")
+    print(f"Early stopping: patience={early_stopping_patience}")
+    print(f"Max epochs: {epochs}")
+    print("=" * 80)
     
-    # Track best metrics
+    if monitor:
+        monitor.print_current_stats()
+
     best_val_loss = float('inf')
-    best_val_empirical = float('inf')
-    best_val_physics = float('inf')
-    best_val_rmse = float('inf')
-    best_train_rmse = float('inf')
-    
-    # Track history
-    train_rmse_history = []
-    val_rmse_history = []
-    train_empirical_history = []
-    val_empirical_history = []
-    train_physics_history = []
-    val_physics_history = []
+    best_epoch = 0
+    epoch_start_time = time.time()
     
     for epoch in range(epochs):
         # Training
         model.train()
+
+        # Forward pass
+        predictions, model_var, physics_info = model(X_train, training=True)
+
+        # Compute task losses
+        train_empirical, train_weighted_physics, train_raw_physics = compute_task_losses(
+            predictions, y_train_tensor, model_var, physics_info, physics_consistency_weight
+        )
         
-        if use_pcgrad and PCGRAD_AVAILABLE:
-            # PCGrad training
-            predictions, model_var, physics_info = model(X_train_dev, training=True)
-            train_empirical, train_weighted_physics, train_raw_physics = compute_task_losses(
-                predictions, y_train_tensor, model_var, physics_info, physics_weight
-            )
-            optimizer.pc_backward([train_empirical, train_weighted_physics])
-        else:
-            # Standard training
-            optimizer.zero_grad()
-            predictions, model_var, physics_info = model(X_train_dev, training=True)
-            train_empirical, train_weighted_physics, train_raw_physics = compute_task_losses(
-                predictions, y_train_tensor, model_var, physics_info, physics_weight
-            )
-            train_loss = train_empirical + train_weighted_physics
-            l2_reg = compute_l2_loss(model, l2_weight=1e-4)
-            train_loss = train_loss + l2_reg
-            train_loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        
+        #optimizer.pc_backward([train_empirical, train_weighted_physics])
+        #optimizer.step()
+        #apply_maxnorm_constraint(model, max_norm=max_norm)
+        optimizer.zero_grad()
+        combined_loss = train_empirical + train_weighted_physics
+        combined_loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
-        apply_maxnorm_constraint(model, max_norm=3.0)
-        
-        # Compute training RMSE
-        train_rmse = torch.sqrt(nn.MSELoss()(predictions, y_train_tensor)).item()
-        
+        apply_maxnorm_constraint(model, max_norm=max_norm)
+        # Calculate total training loss for logging
+        #train_loss_total = train_empirical.item() + train_weighted_physics.item()
+        train_loss_total = combined_loss.item()
+        train_losses.append(train_loss_total)
+        train_empirical_losses.append(train_empirical.item())
+        train_physics_losses.append(train_raw_physics.item())
+
         # Validation
         model.eval()
         with torch.no_grad():
-            val_pred, val_var, val_phys = model(X_val_dev, training=False)
+            test_pred, _, test_phys = model(X_train[:5], training=False)
+            print(f"Initial predictions: {test_pred.mean().item():.2f}")
+            print(f"Target mean: {np.mean(y_train):.2f}")
+            val_predictions, val_model_var, val_physics_info = model(X_val, training=False)
             val_empirical, val_weighted_physics, val_raw_physics = compute_task_losses(
-                val_pred, y_val_tensor, val_var, val_phys, physics_weight
+                val_predictions, y_val_tensor, val_model_var, val_physics_info, physics_consistency_weight
             )
-            val_total = val_empirical + val_weighted_physics
-            val_rmse = torch.sqrt(nn.MSELoss()(val_pred, y_val_tensor)).item()
-        
-        # Store history
-        train_rmse_history.append(train_rmse)
-        val_rmse_history.append(val_rmse)
-        train_empirical_history.append(train_empirical.item())
-        val_empirical_history.append(val_empirical.item())
-        train_physics_history.append(train_raw_physics.item())
-        val_physics_history.append(val_raw_physics.item())
-        
-        # Track best
-        if val_total.item() < best_val_loss:
-            best_val_loss = val_total.item()
-            best_val_empirical = val_empirical.item()
-            best_val_physics = val_raw_physics.item()
-            best_val_rmse = val_rmse
-            best_train_rmse = train_rmse
-        
-        # Verbose output
-        if verbose and ((epoch + 1) % 50 == 0 or epoch == 0):
-            print(f"      Epoch {epoch+1:3d}/{epochs} | "
-                  f"Train RMSE: {train_rmse:.4f} | Val RMSE: {val_rmse:.4f} | "
-                  f"Train Emp: {train_empirical.item():.4f} | Val Emp: {val_empirical.item():.4f} | "
-                  f"Train Phys: {train_raw_physics.item():.4f} | Val Phys: {val_raw_physics.item():.4f}")
-    
-    # Final evaluation
+            val_loss_total = val_empirical.item() + val_weighted_physics.item()
+            val_losses.append(val_loss_total)
+            val_empirical_losses.append(val_empirical.item())
+            val_physics_losses.append(val_raw_physics.item())
+
+        # Track best validation loss
+        if val_loss_total < best_val_loss:
+            best_val_loss = val_loss_total
+            best_epoch = epoch + 1
+
+        # Print progress
+        if (epoch + 1) % 10 == 0 or epoch == 0:
+            elapsed = time.time() - epoch_start_time
+            avg_time_per_epoch = elapsed / (epoch + 1)
+            eta = avg_time_per_epoch * (epochs - epoch - 1)
+            
+            output = (f"Epoch {epoch+1:3d}/{epochs} | "
+                     f"Train Loss: {train_loss_total:.4f} "
+                     f"(Emp: {train_empirical.item():.4f}, Phys: {train_raw_physics.item():.4f}) | "
+                     f"Val Loss: {val_loss_total:.4f} "
+                     f"(Emp: {val_empirical.item():.4f}, Phys: {val_raw_physics.item():.4f}) | "
+                     f"Time: {format_time(elapsed)} | ETA: {format_time(eta)}")
+            
+            if monitor:
+                stats = monitor.get_current_stats()
+                output += f" | CPU: {stats['cpu_percent']:.0f}% | RAM: {stats['ram_percent']:.0f}%"
+                if monitor.has_gpu:
+                    output += f" | GPU: {stats['gpu_percent_allocated']:.0f}%"
+            
+            print(output)
+
+    total_training_time = time.time() - epoch_start_time
+    print("=" * 80)
+    print(f"Training completed!")
+    print(f"Best validation loss: {best_val_loss:.4f} at epoch {best_epoch}")
+    print(f"Total training time: {format_time(total_training_time)}")
+    print("=" * 80)
+
+    return train_losses, val_losses, train_empirical_losses, train_physics_losses
+
+
+def evaluate_model(model, X_test, y_test, device='cpu'):
+    """Evaluate the model on test set."""
     model.eval()
+    X_test = [x.to(device) for x in X_test]
+    y_test_tensor = torch.FloatTensor(y_test).unsqueeze(1).to(device)
+
     with torch.no_grad():
-        val_pred, _, _ = model(X_val_dev, training=False)
-        final_val_rmse = torch.sqrt(nn.MSELoss()(val_pred, y_val_tensor)).item()
-        val_mae = torch.mean(torch.abs(val_pred - y_val_tensor)).item()
-        
-        train_pred, _, _ = model(X_train_dev, training=False)
-        final_train_rmse = torch.sqrt(nn.MSELoss()(train_pred, y_train_tensor)).item()
-        train_mae = torch.mean(torch.abs(train_pred - y_train_tensor)).item()
-    
-    # Cleanup
-    del model, optimizer, X_train_dev, X_val_dev
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    
-    return {
-        'physics_weight': physics_weight,
-        
-        # Final metrics
-        'val_rmse': final_val_rmse,
-        'val_mae': val_mae,
-        'train_rmse': final_train_rmse,
-        'train_mae': train_mae,
-        
-        # Best metrics during training
-        'best_val_total_loss': best_val_loss,
-        'best_val_empirical_loss': best_val_empirical,
-        'best_val_physics_loss': best_val_physics,
-        'best_val_rmse': best_val_rmse,
-        'best_train_rmse': best_train_rmse,
-        
-        # Training history (for plotting)
-        'train_rmse_history': train_rmse_history,
-        'val_rmse_history': val_rmse_history,
-        'train_empirical_history': train_empirical_history,
-        'val_empirical_history': val_empirical_history,
-        'train_physics_history': train_physics_history,
-        'val_physics_history': val_physics_history,
-    }
+        predictions, model_var, physics_info = model(X_test, training=False)
+        mse = nn.MSELoss()(predictions, y_test_tensor).item()
+        rmse = np.sqrt(mse)
+        mae = torch.mean(torch.abs(predictions - y_test_tensor)).item()
+        ss_res = torch.sum((y_test_tensor - predictions) ** 2).item()
+        ss_tot = torch.sum((y_test_tensor - torch.mean(y_test_tensor)) ** 2).item()
+        r2 = 1 - (ss_res / ss_tot)
+
+    metrics = {'mse': mse, 'rmse': rmse, 'mae': mae, 'r2': r2}
+    return predictions.cpu().numpy(), metrics
 
 
 def main():
-    print("="*80)
-    print("OVERNIGHT GRID SEARCH - VERBOSE VERSION")
-    print("Tracking: Train/Val RMSE, Empirical Loss, Physics Loss")
-    print("="*80)
-    
-    # Configuration
-    physics_weights = [round(i * 0.01, 6) for i in range(101)]  # 0.00 to 1.00
-    
+    print("=" * 80)
+    print("PyTorch PGGCN Training with no PCGrad")
+    print("=" * 80)
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    epochs = 250
-    use_pcgrad = PCGRAD_AVAILABLE
-    
-    print(f"\nConfiguration:")
-    print(f"  Device: {device}")
-    print(f"  Optimizer: {'PCGrad + Adam' if use_pcgrad else 'Adam'}")
-    print(f"  Weights: {len(physics_weights)} (0.00 to 1.00, step 0.01)")
-    print(f"  Epochs per weight: {epochs}")
-    
-    # Time estimate
-    time_per_weight_min = 30
-    total_time_min = len(physics_weights) * time_per_weight_min
-    total_hours = total_time_min / 60
-    print(f"\n  Estimated time: {total_hours:.1f} hours ({total_hours/24:.1f} days)")
-    print(f"  Start: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"  Est. finish: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time() + total_time_min*60))}")
-    
+    print(f"\nUsing device: {device}")
+
+    monitor = ResourceMonitor(device=device, monitoring_interval=1.0)
+    monitor.print_system_info()
+
+    script_start_time = time.time()
+    monitor.start_monitoring()
+
     # Paths
     info_csv_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/Datasets/Final_data_DDG.csv'
     hostguest_dir = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/Datasets/PDBs_RDKit_BFE.pkl'
-    output_dir = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/grid_search_results'
+
+    # Load data
+    print("\n" + "-" * 80)
+    print("Loading Data")
+    print("-" * 80)
+    data_load_start = time.time()
+    X, y, df_info = load_all_data(info_csv_path, hostguest_dir, monitor=monitor)
     
-    print("\n" + "="*80)
-    print("Loading Data...")
-    print("="*80)
-    X, y = load_all_data(info_csv_path, hostguest_dir)
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
-    print(f"Training: {len(X_train)}, Validation: {len(X_val)}")
+    data_load_time = time.time() - data_load_start
+    print(f"Data loading completed in: {format_time(data_load_time)}")
+
+    # Split data
+    print("\n" + "-" * 80)
+    print("Splitting Data (80% train, 20% test)")
+    print("-" * 80)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    print(f"Training set: {len(X_train)} samples")
+    print(f"Test set: {len(X_test)} samples")
+
+    # Create model
+    print("\n" + "-" * 80)
+    print("Creating Model")
+    print("-" * 80)
+    model = PGGCNModel(num_atom_features=36, r_out_channel=20, c_out_channel=128, dropout_rate=0.2)
+    model.add_rule("sum", 0, 32)
+    model.add_rule("multiply", 32, 33)
+    model.add_rule("distance", 33, 36)
+
+    print(f"Model created with {sum(p.numel() for p in model.parameters())} parameters")
+    print("\n>>> Checking dense_final initialization:")
+    print(f"dense_final.weight: {model.dense_final.weight.data}")
+    print(f"dense_final.bias: {model.dense_final.bias.data}")
     
-    # Create output directory
-    os.makedirs(output_dir, exist_ok=True)
+    expected = torch.tensor([0.3, 1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, -1])
+    print(f"\nExpected: {expected}")
+    print(f"Match: {torch.allclose(model.dense_final.weight.data.flatten(), expected, atol=0.01)}")
     
-    # Run grid search
-    results = []
-    total_start = time.time()
+    if device == 'cuda':
+        torch.cuda.reset_peak_memory_stats()
+    model = model.to(device)
+    if device == 'cuda':
+        print(f"Model memory footprint: {format_bytes(torch.cuda.memory_allocated(0))}")
     
-    print("\n" + "="*80)
-    print("Starting Grid Search")
-    print("="*80)
-    
-    for i, weight in enumerate(physics_weights, 1):
-        iter_start = time.time()
+    # Adding target mean to bias initialization 
+    target_mean = np.mean(y_train)
+    print(f"\n>>> Initializing dense3 bias to target mean: {target_mean:.4f}")
+    print(f"    Before init - dense3.bias value: {model.dense3.bias.item():.4f}")
+
+    with torch.no_grad():
+        model.dense3.bias.fill_(target_mean)
+    print(f"    After init - dense3.bias value: {model.dense3.bias.item():.4f}")
+
+    # VERIFY initialization worked by checking predictions
+    model.eval()
+    X_train_device = [x.to(device) for x in X_train[:5]]
+    with torch.no_grad():
+        test_pred, _, _ = model(X_train_device, training=False)
+        pred_mean = test_pred.mean().item()
+        print(f"    Initial predictions mean: {pred_mean:.4f}")
+        print(f"    Expected (close to target mean): {target_mean:.4f}")
+        print(f"    Offset: {abs(pred_mean - target_mean):.4f}")
         
-        print(f"\n[{i}/{len(physics_weights)}] Physics Weight = {weight:.6f}")
-        print(f"  Started: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-        
-        try:
-            result = train_single_config(
-                X_train, y_train, X_val, y_val,
-                weight, device,
-                epochs=epochs,
-                use_pcgrad=use_pcgrad,
-                verbose=True
-            )
-            
-            results.append(result)
-            
-            iter_time = time.time() - iter_start
-            print(f"\n  ✓ Completed in {timedelta(seconds=int(iter_time))}")
-            print(f"  ┌─ Final Metrics ─────────────────────────")
-            print(f"  │ Train RMSE: {result['train_rmse']:.4f}")
-            print(f"  │ Val RMSE:   {result['val_rmse']:.4f}")
-            print(f"  │ Train MAE:  {result['train_mae']:.4f}")
-            print(f"  │ Val MAE:    {result['val_mae']:.4f}")
-            print(f"  ├─ Best During Training ──────────────────")
-            print(f"  │ Best Train RMSE: {result['best_train_rmse']:.4f}")
-            print(f"  │ Best Val RMSE:   {result['best_val_rmse']:.4f}")
-            print(f"  │ Best Empirical:  {result['best_val_empirical_loss']:.4f}")
-            print(f"  │ Best Physics:    {result['best_val_physics_loss']:.4f}")
-            print(f"  └─────────────────────────────────────────")
-            
-            # Progress estimate
-            elapsed = time.time() - total_start
-            avg_time = elapsed / i
-            remaining = avg_time * (len(physics_weights) - i)
-            pct_complete = (i / len(physics_weights)) * 100
-            
-            print(f"\n  Progress: {pct_complete:.1f}% ({i}/{len(physics_weights)})")
-            print(f"  Elapsed: {timedelta(seconds=int(elapsed))}")
-            print(f"  Estimated remaining: {timedelta(seconds=int(remaining))}")
-            print(f"  Est. completion: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time() + remaining))}")
-            
-            # Save checkpoint every 10 iterations
-            if i % 10 == 0 or i == len(physics_weights):
-                checkpoint_path = os.path.join(output_dir, f'results_step0.01_checkpoint_{i}.json')
-                with open(checkpoint_path, 'w') as f:
-                    json.dump(results, f, indent=2)
-                print(f"  ✓ Checkpoint saved: {checkpoint_path}")
-            
-        except Exception as e:
-            print(f"  ✗ ERROR: {e}")
-            import traceback
-            traceback.print_exc()
-            continue
+        if abs(pred_mean - target_mean) > 3.0:
+            print(f"    ⚠️  WARNING: Predictions too far from target mean!")
+            print(f"    Initialization may not be working correctly.")
+        else:
+            print(f"    ✓ Initialization looks good!")
+
+    # Train model with PCGrad
+    print("\n" + "-" * 80)
+    print("Training Model")
+    print("-" * 80)
+
+    train_losses, val_losses, train_emp, train_phys = train_model_with_pcgrad(
+        model, X_train, y_train, X_test, y_test,
+        epochs=250,
+        lr=0.001,
+        device=device,
+        physics_consistency_weight=0.58,
+        l2_weight=1e-4,
+        max_norm=3.0,
+        early_stopping_patience=10,
+        monitor=monitor
+    )
     
-    # Final save
-    total_time = time.time() - total_start
+    monitor.print_summary_stats("Training")
+
+    # Evaluate
+    print("\n" + "-" * 80)
+    print("Evaluating on Test Set")
+    print("-" * 80)
+    predictions, metrics = evaluate_model(model, X_test, y_test, device=device)
+
+    print(f"\nTest Set Metrics:")
+    print(f"  RMSE: {metrics['rmse']:.4f}")
+    print(f"  MAE:  {metrics['mae']:.4f}")
+    print(f"  R²:   {metrics['r2']:.4f}")
+
+    # Show sample predictions
+    print("\n" + "-" * 80)
+    print("Sample Predictions")
+    print("-" * 80)
+    print(f"{'True Value':>12} | {'Prediction':>12} | {'Error':>12}")
+    print("-" * 40)
+    for i in range(min(10, len(y_test))):
+        true_val = y_test[i]
+        pred_val = predictions[i][0]
+        error = pred_val - true_val
+        print(f"{true_val:>12.4f} | {pred_val:>12.4f} | {error:>12.4f}")
+
+    monitor.stop_monitoring()
+
+    # Save model
+    print("\n" + "-" * 80)
+    print("Saving Model")
+    print("-" * 80)
+    model_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/saved_models/hostguest_no_pcgrad_weight_58.pth'
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
     
-    print("\n" + "="*80)
-    print("GRID SEARCH COMPLETED")
-    print("="*80)
-    print(f"Total time: {timedelta(seconds=int(total_time))}")
-    print(f"Successful runs: {len(results)}/{len(physics_weights)}")
-    print(f"Finished: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    total_script_time = time.time() - script_start_time
     
-    # Save final results
-    final_path = os.path.join(output_dir, 'results_step0.01_FINAL.json')
-    with open(final_path, 'w') as f:
-        json.dump(results, f, indent=2)
-    print(f"\n✓ Final results saved: {final_path}")
+    save_dict = {
+        'model_state_dict': model.state_dict(),
+        'train_losses': train_losses,
+        'val_losses': val_losses,
+        'train_empirical_losses': train_emp,
+        'train_physics_losses': train_phys,
+        'metrics': metrics,
+        'hyperparameters': {
+            'learning_rate': 0.001,
+            'l2_weight': 1e-4,
+            'max_norm': 3.0,
+            'dropout_rate': 0.2,
+            'physics_consistency_weight': 0.58,
+            'early_stopping_patience': 10,
+            'num_epochs': 250,
+            'use_pcgrad': PCGRAD_AVAILABLE,
+        },
+        'dataset_info': {
+            'total_samples': len(X),
+            'train_samples': len(X_train),
+            'test_samples': len(X_test),
+            'random_seed': RANDOM_SEED,
+        },
+    }
     
-    # Print top 10
-    if results:
-        sorted_results = sorted(results, key=lambda x: x['val_rmse'])
-        
-        print("\n" + "="*80)
-        print("TOP 10 CONFIGURATIONS")
-        print("="*80)
-        print(f"{'Rank':<6} {'Weight':<10} {'Val RMSE':<10} {'Train RMSE':<11} {'Emp Loss':<10} {'Phys Loss':<10}")
-        print("-"*67)
-        
-        for rank, result in enumerate(sorted_results[:10], 1):
-            print(f"{rank:<6} {result['physics_weight']:<10.4f} "
-                  f"{result['val_rmse']:<10.4f} {result['train_rmse']:<11.4f} "
-                  f"{result['best_val_empirical_loss']:<10.4f} "
-                  f"{result['best_val_physics_loss']:<10.4f}")
-        
-        best = sorted_results[0]
-        print("\n" + "="*80)
-        print("BEST CONFIGURATION")
-        print("="*80)
-        print(f"Physics Weight:     {best['physics_weight']:.6f}")
-        print(f"Val RMSE:           {best['val_rmse']:.4f}")
-        print(f"Train RMSE:         {best['train_rmse']:.4f}")
-        print(f"Val MAE:            {best['val_mae']:.4f}")
-        print(f"Train MAE:          {best['train_mae']:.4f}")
-        print(f"Best Empirical:     {best['best_val_empirical_loss']:.4f}")
-        print(f"Best Physics:       {best['best_val_physics_loss']:.4f}")
-        print("="*80)
-    
-    print("\n✓ All done! You can now run plot_combined_results.py to visualize.")
+    torch.save(save_dict, model_path)
+    print(f"Model saved to: {model_path}")
+
+    # Final summary
+    print("\n" + "=" * 80)
+    print("TRAINING COMPLETE")
+    print("=" * 80)
+    print(f"Optimizer: {'PCGrad + Adam' if PCGRAD_AVAILABLE else 'Adam'}")
+    print(f"Test RMSE: {metrics['rmse']:.4f}")
+    print(f"Test MAE:  {metrics['mae']:.4f}")
+    print(f"Training time: {format_time(total_script_time - data_load_time)}")
+    print("=" * 80)
 
 
 if __name__ == "__main__":

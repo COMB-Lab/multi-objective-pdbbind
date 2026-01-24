@@ -203,7 +203,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--model-path', 
         type=str,
-        default='/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/saved_models/pggcn_pcgrad_final.pth',
+        default='/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/hostguest/saved_models/pggcn_pcgrad_0.18.pth',
         help='Path to saved model .pth file'
     )
     parser.add_argument(

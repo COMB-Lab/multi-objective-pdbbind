@@ -254,7 +254,7 @@ if __name__ == "__main__":
     import os
     
     # Default paths
-    results_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/grid_search_results/results_step0.01.json'
+    results_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/grid_search_results/results_step0.01_checkpoint_70.json'
     output_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/plots/pareto_front.png'
     
     # Check if results exist

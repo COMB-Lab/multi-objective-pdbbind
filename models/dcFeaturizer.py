@@ -4,6 +4,10 @@ import numpy as np
 from deepchem.utils.typing import RDKitMol, RDKitAtom
 from deepchem.feat.graph_features import one_of_k_encoding_unk, one_of_k_encoding, ConvMol, atom_to_id
 from rdkit import Chem
+from rdkit import RDLogger
+
+# Disable RDKit warning logs
+RDLogger.DisableLog('rdApp.warning')
 def atom_features(atom,
                   bool_id_feat=False,
                   explicit_H=False,

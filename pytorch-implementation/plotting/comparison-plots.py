@@ -26,7 +26,7 @@ def load_saved_results(base_path):
     results = {}
     
     # Try to load no-PCGrad results
-    no_pcgrad_path = Path(base_path) / "pggcn_no_pcgrad_0.2.pth"
+    no_pcgrad_path =  Path(base_path) / "pggcn_no_pcgrad_0.18.pth"
     if no_pcgrad_path.exists():
         checkpoint = torch.load(no_pcgrad_path, map_location='cpu', weights_only=False)
         results['no_pcgrad'] = {
@@ -39,7 +39,7 @@ def load_saved_results(base_path):
         print(f"✗ No-PCGrad results not found at {no_pcgrad_path}")
     
     # Try to load PCGrad results
-    pcgrad_path = Path(base_path) / "pggcn_pcgrad_0.2.pth"
+    pcgrad_path = Path(base_path) / "pggcn_pcgrad_0.18.pth"
     if pcgrad_path.exists():
         checkpoint = torch.load(pcgrad_path, map_location='cpu', weights_only=False)
         results['pcgrad'] = {
@@ -96,7 +96,7 @@ def create_comparison_table(results):
     
     return df
 
-def print_comparison_table(df, phys_weight=0.58):
+def print_comparison_table(df, phys_weight=0.2):
     """Print formatted comparison table"""
     
     print("\n" + "="*90)
@@ -415,8 +415,8 @@ def main():
     print("="*100)
     
     # Set paths
-    base_path = "/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/saved_models"
-    output_dir = "/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/comparison_plots"
+    base_path = "/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/hostguest/saved_models"
+    output_dir = "/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/hostguest/comparison_plots"
     
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)

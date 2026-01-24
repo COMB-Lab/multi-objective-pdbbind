@@ -796,8 +796,8 @@ def main():
     print("-" * 80)
 
     # Hyperparameters
-    learning_rate = 0.005
-    sign_penalty_weight = 1.0
+    learning_rate = 1e-4
+    sign_penalty_weight = 0.0
     num_epochs = 250
 
     train_losses, val_losses = train_model(
@@ -844,7 +844,7 @@ def main():
     print("\n" + "-" * 80)
     print("Saving Model")
     print("-" * 80)
-    model_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/saved_models/hostguest_model.pth'
+    model_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/hostguest/saved_models/pggcn_hostguest_model_no_physics.pth'
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
     
     # Get resource summary

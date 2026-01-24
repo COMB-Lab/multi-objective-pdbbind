@@ -84,7 +84,7 @@ class Config:
     LEARNING_RATE = 1e-4  # PAPER: Appendix D.2 specifies 1e-4 for PCGrad
     L2_WEIGHT = 1e-4
     MAX_NORM = 3.0
-    PHYSICS_WEIGHT = 0.2
+    PHYSICS_WEIGHT = 0.58
     EARLY_STOPPING_PATIENCE = 10
     
     # Data split
@@ -588,7 +588,7 @@ def main():
         }
         
         # Save model
-        save_dir = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/saved_models'
+        save_dir = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/hostguest/saved_models'
         os.makedirs(save_dir, exist_ok=True)
         
         filename = f"pggcn_{'pcgrad' if use_pcgrad else 'no_pcgrad'}_{config.PHYSICS_WEIGHT}.pth"

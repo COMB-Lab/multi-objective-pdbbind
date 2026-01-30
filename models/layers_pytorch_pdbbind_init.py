@@ -274,11 +274,11 @@ class PGGCNModel(nn.Module):
         with torch.no_grad():
             init_weights = torch.tensor([
                 0.3,   # model_var weight
-                1.0, 1.0, -1.0,  # VDW: protein, ligand, complex
-                1.0, 1.0, -1.0,  # 1-4EEL: host, guest, complex
-                1.0, 1.0, -1.0,  # EELEC: host, guest, complex
-                1.0, 1.0, -1.0,  # EGB: host, guest, complex
-                1.0, 1.0, -1.0   # ESURF: host, guest, complex
+                -1.0, -1.0, 1.0,  # VDW: protein, ligand, complex
+                -1.0, -1.0, 1.0,  # 1-4EEL: host, guest, complex
+                -1.0, -1.0, 1.0,  # EELEC: host, guest, complex
+                -1.0, -1.0, 1.0,  # EGB: host, guest, complex
+                -1.0, -1.0, 1.0   # ESURF: host, guest, complex
             ]).reshape(1, 16)  # Shape: [out_features=1, in_features=16] for nn.Linear
             self.dense_final.weight.copy_(init_weights)
             self.dense_final.bias.zero_()

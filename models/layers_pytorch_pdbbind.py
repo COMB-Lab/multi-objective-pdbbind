@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import time
 
 
 class RuleGraphConvLayer(nn.Module):
@@ -66,112 +67,106 @@ class RuleGraphConvLayer(nn.Module):
             self.combination_rules.append([[start_index], rule])
         else:
             self.combination_rules.append([[start_index, end_index], rule])
-
     def _call_single(self, features_with_info):
         """
-        Process a single molecule.
-
-        Args:
-            features_with_info: Tensor of shape [num_atoms, num_features + 2 + info_size]
-                               where last elements are [neighbor1_idx, neighbor2_idx, ...info...]
-
-        Returns:
-            Tensor of shape [num_atoms, out_channel]
+        Vectorized processing of a single molecule.
         """
-        # Separate features from neighbor info and additional info
+        # Separate features from neighbor info
         atom_features = features_with_info[:, :self.num_features]
         neighbor_indices = features_with_info[:, self.num_features:self.num_features + 2]
         num_atoms = features_with_info.shape[0]
 
-        # Self convolution: multiply each atom's features by w_s
+        # Convert to long and create valid mask
+        neighbor_indices = neighbor_indices.long()
+        valid_mask = (neighbor_indices >= 1) & (neighbor_indices < num_atoms)
+
+        # Self convolution (already vectorized)
         self_conv_features = torch.matmul(atom_features, self.w_s)  # [num_atoms, out_channel]
-
-        # Initialize neighbor convolution features
-        neighbor_conv_features = torch.zeros_like(self_conv_features)
-
-        # Process each atom's neighbors
-        for i in range(num_atoms):
-            self_feat = atom_features[i]  # [num_features]
-
-            # Process up to 2 neighbors
-            for neighbor_col in range(2):
-                neighbor_idx_raw = neighbor_indices[i, neighbor_col].item()
-                neighbor_idx = int(neighbor_idx_raw)
-
-                # Skip if no neighbor (index is 0 or invalid)
-                if neighbor_idx == -1 or neighbor_idx == 0:
-                    continue
-                if neighbor_idx >= num_atoms:
-                    continue
-
-                neighbor_feat = atom_features[neighbor_idx]  # [num_features]
-
-                # Apply combination rules to create new ordered features
-                combined_features = []
-                distance = -1.0
-
-                for j, (indices, operation) in enumerate(self.combination_rules):
-                    if len(indices) == 1:
-                        # Single index - take features from that index onward
-                        start_idx = indices[0]
-                        if j == len(self.combination_rules) - 1:
-                            # Last rule with single index
-                            result = operation(self_feat[start_idx:], neighbor_feat[start_idx:])
-                        else:
-                            result = operation(self_feat[start_idx:], neighbor_feat[start_idx:])
-                    else:
-                        # Range of indices
-                        start_idx, end_idx = indices[0], indices[1]
-
-                        if operation == "distance":
-                            # Calculate distance
-                            distance = self.atom_distance(
-                                self_feat[start_idx:end_idx],
-                                neighbor_feat[start_idx:end_idx]
-                            )
-                            result = neighbor_feat[start_idx:end_idx]
-                        else:
-                            # Apply operation
-                            result = operation(
-                                self_feat[start_idx:end_idx],
-                                neighbor_feat[start_idx:end_idx]
-                            )
-
-                    combined_features.append(result)
-
-                # Concatenate all combined features
-                new_ordered_features = torch.cat(combined_features, dim=0)
-
-                # Apply distance scaling if distance was calculated
-                if distance > 0:
-                    distance = max(distance.item(), 1e-3)  # Avoid division by very small numbers
-                    new_ordered_features = new_ordered_features / (distance ** 2)
-
-                # Ensure the concatenated features match num_features dimension
-                if new_ordered_features.shape[0] < self.num_features:
-                    # Pad if necessary
-                    padding = torch.zeros(self.num_features - new_ordered_features.shape[0],
-                                         device=new_ordered_features.device)
-                    new_ordered_features = torch.cat([new_ordered_features, padding], dim=0)
-                elif new_ordered_features.shape[0] > self.num_features:
-                    # Truncate if necessary
-                    new_ordered_features = new_ordered_features[:self.num_features]
-
-                # Apply neighbor weight and add to accumulator
-                neighbor_contribution = torch.matmul(
-                    new_ordered_features.unsqueeze(0),
-                    self.w_n
-                )  # [1, out_channel]
-
-                neighbor_conv_features[i] += neighbor_contribution.squeeze(0)
-
+        
+        # ========== VECTORIZED NEIGHBOR PROCESSING ==========
+        
+        # Flatten neighbor indices and mask
+        # Shape: [num_atoms, 2] -> [num_atoms * 2]
+        neighbor_indices_flat = neighbor_indices.flatten()
+        valid_mask_flat = valid_mask.flatten()
+        
+        # Get valid neighbor pairs
+        valid_neighbor_indices = neighbor_indices_flat[valid_mask_flat]  # [num_valid]
+        
+        # Get corresponding atom indices for each valid neighbor
+        # atom_ids tells us which atom each neighbor belongs to
+        atom_ids = torch.arange(num_atoms, device=atom_features.device).repeat_interleave(2)
+        atom_ids = atom_ids[valid_mask_flat]  # [num_valid]
+        
+        if len(valid_neighbor_indices) == 0:
+            # No valid neighbors, return self convolution only
+            output = self_conv_features
+            if self.activation_fn is not None:
+                output = self.activation_fn(output)
+            return output
+        
+        # Gather all self and neighbor features
+        self_feats = atom_features[atom_ids]  # [num_valid, num_features]
+        neighbor_feats = atom_features[valid_neighbor_indices]  # [num_valid, num_features]
+        
+        # Apply combination rules to ALL valid pairs in parallel
+        combined_features = []
+        distances = None
+        for j, (indices, operation) in enumerate(self.combination_rules):
+            if len(indices) == 1:
+                # Single index - take features from that index onward
+                start_idx = indices[0]
+                result = operation(
+                    self_feats[:, start_idx:], 
+                    neighbor_feats[:, start_idx:]
+                )  # [num_valid, remaining_features]
+            else:
+                # Range of indices
+                start_idx, end_idx = indices[0], indices[1]
+                
+                if operation == "distance":
+                    # Calculate distances for all valid pairs
+                    diff = self_feats[:, start_idx:end_idx] - neighbor_feats[:, start_idx:end_idx]
+                    distances = torch.sqrt(torch.sum(diff ** 2, dim=1))  # [num_valid]
+                    result = neighbor_feats[:, start_idx:end_idx]
+                else:
+                    # Apply operation
+                    result = operation(
+                        self_feats[:, start_idx:end_idx],
+                        neighbor_feats[:, start_idx:end_idx]
+                    )
+            
+            combined_features.append(result)
+        
+        # Concatenate all combined features
+        new_ordered_features = torch.cat(combined_features, dim=1)  # [num_valid, total_feature_size]
+        
+        # Apply distance scaling if distance was calculated
+        if distances is not None:
+            # Clamp distances to avoid division by very small numbers
+            distances = torch.clamp(distances, min=1e-3)
+            # Scale each feature vector by distance squared
+            new_ordered_features = new_ordered_features / (distances.unsqueeze(1) ** 2)
+        
+        # Apply neighbor weight: [num_valid, num_features] @ [num_features, out_channel]
+        neighbor_contributions = torch.matmul(new_ordered_features, self.w_n)  # [num_valid, out_channel]
+        
+        # Scatter contributions back to atoms
+        # atom_ids tells us which atom each contribution belongs to
+        neighbor_conv_features = torch.zeros(
+            num_atoms, 
+            self.out_channel, 
+            device=atom_features.device
+        )
+        neighbor_conv_features.index_add_(0, atom_ids, neighbor_contributions)
+        
         # Combine self and neighbor convolutions
         output = self_conv_features + neighbor_conv_features
-
+        
         # Apply activation if specified
         if self.activation_fn is not None:
             output = self.activation_fn(output)
-
+        
         return output
 
     def forward(self, inputs):
@@ -269,16 +264,16 @@ class PGGCNModel(nn.Module):
         # Input: 1 (model_var) + 15 (physics_info) = 16 features
         self.dense_final = nn.Linear(16, 1)
         
-        # Initialize final layer weights to match TensorFlow EXACTLY
-        # TensorFlow: kernel_initializer=Constant([.3, 1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, -1])
+        # Initialize final layer weights to match dataset([.3, 1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, -1])
+        # Also try .5 like sahar's pdbbind code
         with torch.no_grad():
             init_weights = torch.tensor([
                 0.3,   # model_var weight
-                1.0, 1.0, -1.0,  # VDW: protein, ligand, complex
-                1.0, 1.0, -1.0,  # 1-4EEL: host, guest, complex
-                1.0, 1.0, -1.0,  # EELEC: host, guest, complex
-                1.0, 1.0, -1.0,  # EGB: host, guest, complex
-                1.0, 1.0, -1.0   # ESURF: host, guest, complex
+                -1.0, -1.0, 1.0,  # VDW: protein, ligand, complex
+                -1.0, -1.0, 1.0,  # protein, ligand, complex
+                -1.0, -1.0, 1.0,  # protein, ligand, complex
+                -1.0, -1.0, 1.0,  # protein, ligand, complex
+                -1.0, -1.0, 1.0   # protein, ligand, complex
             ]).reshape(1, 16)  # Shape: [out_features=1, in_features=16] for nn.Linear
             self.dense_final.weight.copy_(init_weights)
             self.dense_final.bias.zero_()

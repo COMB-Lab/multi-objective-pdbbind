@@ -17,18 +17,15 @@ import argparse
 from datetime import timedelta
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, DataLoader
+from datetime import datetime
 
 sys.path.insert(0, '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind')
 
-try:
-    from PGGCN.models.dcFeaturizer import atom_features as get_atom_features
-    from PGGCN.models.layers_pytorch import PGGCNModel
-except:
-    from models.dcFeaturizer import atom_features as get_atom_features
-    from models.layers_pytorch import PGGCNModel
 
+from models.dcFeaturizer import atom_features as get_atom_features
+from models.layers_pytorch_pdbbind import PGGCNModel
 
-from pcgrad_pytorch import PCGrad
+from models.pcgrad_pytorch import PCGrad
 PCGRAD_AVAILABLE = True
 
 
@@ -385,9 +382,19 @@ def main():
                        help='Use standard optimizer instead of PCGrad')
     args = parser.parse_args()
     
+    import random
+    torch.manual_seed(50)
+    torch.cuda.manual_seed_all(50)
+    np.random.seed(50)
+    random.seed(50)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     print("="*80)
     print("PCGRAD PDBBIND TRAINING")
     print("="*80)
+    print(f"Timestamp: {timestamp}")
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"\nDevice: {device}")
@@ -442,23 +449,19 @@ def main():
     print(f"Test MAE:  {metrics['mae']:.2f} kcal/mol")
     print(f"Test R²:   {metrics['r2']:.4f}")
     
-    print(f"\nComparison:")
-    print(f"  Standard (no PCGrad):  MAE 18.73 @ epoch 100")
-    print(f"  TensorFlow baseline:   MAE 8.85")
-    print(f"  This run:              MAE {metrics['mae']:.2f}")
-    
     # Save
     save_dir = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/saved_models'
     os.makedirs(save_dir, exist_ok=True)
     
     method = 'pcgrad' if use_pcgrad else 'standard'
-    filename = f"pggcn_pdbbind_{method}_pw{args.physics_weight:.3f}.pth"
+    filename = f"pggcn_pdbbind_{method}_pw{args.physics_weight:.6f}_{timestamp}.pth"
     save_path = os.path.join(save_dir, filename)
     
     torch.save({
         'model_state_dict': model.state_dict(),
         'history': history,
         'metrics': metrics,
+        'timestamp': timestamp,
         'config': {
             'physics_weight': config.PHYSICS_WEIGHT,
             'learning_rate': config.LEARNING_RATE,

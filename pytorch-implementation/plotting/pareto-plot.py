@@ -36,7 +36,7 @@ def find_best_tradeoff(empirical, physics, pareto_mask):
     return pareto_indices[np.argmin(distances)]
 
 
-def plot_pareto_simple(results_path, output_path='pareto_front.png'):
+def plot_pareto_simple(results_path, output_path='pareto_front_recent.png'):
     """
     Create clean Pareto front plot.
     

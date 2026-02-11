@@ -16,10 +16,10 @@ saved_models/
 ############################
 # Data files (large)
 ############################
-*.pkl
-*.pickle
-Datasets/*.pkl
-Datasets/*.csv
+
+
+
+
 
 ############################
 # Python

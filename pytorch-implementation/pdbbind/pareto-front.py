@@ -1,5 +1,5 @@
 """
-Simple Pareto Front Plotter
+Simple Pareto Front Plotter - Fixed for PDBBind Data
 Easy to customize version with clear visual hierarchy
 """
 
@@ -35,6 +35,13 @@ def find_best_tradeoff(empirical, physics, pareto_mask):
     
     return pareto_indices[np.argmin(distances)]
 
+def smart_fmt(x: float, decimals: int = 3, small: float = 1e-3, large: float = 1e6) -> str:
+    if x == 0:
+        return f"{0:.{decimals}f}"
+    ax = abs(x)
+    if ax < small or ax >= large:
+        return f"{x:.{decimals}e}"   # scientific with 3 decimals
+    return f"{x:.{decimals}f}"
 
 def plot_pareto_simple(results_path, output_path='pareto_front_recent.png'):
     """
@@ -55,9 +62,9 @@ def plot_pareto_simple(results_path, output_path='pareto_front_recent.png'):
     with open(results_path, 'r') as f:
         results = json.load(f)
     
-    # Extract arrays
-    empirical = np.array([r['best_val_empirical_loss'] for r in results])
-    physics = np.array([r['best_val_physics_loss'] for r in results])
+    # Extract arrays - FIXED to match your data structure
+    empirical = np.array([r['test_empirical'] for r in results])
+    physics = np.array([r['test_physics'] for r in results])
     weights = np.array([r['physics_weight'] for r in results])
     mae = np.array([r.get('test_mae', 0) for r in results])
     
@@ -74,11 +81,10 @@ def plot_pareto_simple(results_path, output_path='pareto_front_recent.png'):
     pareto_indices_sorted = pareto_indices[sort_idx]
     
     # Find best trade-off point
-    #best_idx = find_best_tradeoff(empirical, physics, pareto_mask)
-    best_idx = np.argmin(np.abs(weights - 0.18))
-    print(f"✓ {len(results)} configurations, {len(pareto_indices)} Pareto optimal")
-    print(f"✓ Best trade-off: λ={weights[best_idx]:.3f}, "
-          f"Emp={empirical[best_idx]:.4f}, Phys={physics[best_idx]:.4f}")
+    best_idx = find_best_tradeoff(empirical, physics, pareto_mask)
+    print(f"{len(results)} configurations, {len(pareto_indices)} Pareto optimal")
+    print(f"Best trade-off: λ={weights[best_idx]:.3f}, "
+          f"Emp={empirical[best_idx]:.4f}, Phys={physics[best_idx]:.4f}, MAE={mae[best_idx]:.4f}")
     
     # CREATE FIGURE
     fig, ax = plt.subplots(figsize=(12, 10))
@@ -134,7 +140,7 @@ def plot_pareto_simple(results_path, output_path='pareto_front_recent.png'):
         facecolors='gold',   # Bright color
         edgecolors='darkorange', # Border color
         linewidths=3,        # Thick border
-        label='Best Trade-off',
+        label=f'Best Trade-off (λ={weights[best_idx]:.3e})',
         zorder=4
     )
     
@@ -164,8 +170,8 @@ def plot_pareto_simple(results_path, output_path='pareto_front_recent.png'):
         if should_label:
             text = ax.text(
                 empirical[idx], physics[idx],
-                f"λ={weight:.3f}",
-                fontsize=12,           # Text size
+                f"λ=" + f"{smart_fmt(weight)}",
+                fontsize=11,           # Text size
                 fontweight='bold',     # Text weight
                 bbox=dict(
                     boxstyle='round,pad=0.5',
@@ -199,7 +205,7 @@ def plot_pareto_simple(results_path, output_path='pareto_front_recent.png'):
     
     # Title
     ax.set_title(
-        'Pareto Front: Empirical vs Physics Loss\nMulti-Objective Optimization Trade-off',
+        'Pareto Front: Empirical vs Physics Loss\nMulti-Objective Optimization Trade-off on PDBBind Dataset',
         fontsize=18, fontweight='bold', pad=20
     )
     
@@ -252,26 +258,29 @@ def plot_pareto_simple(results_path, output_path='pareto_front_recent.png'):
 
 if __name__ == "__main__":
     import os
+    import sys
     
-    # Default paths
-    results_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/pdbbind/grid_search/pdbbind_grid_search_results_20260202-153018.json'
-    output_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/pdbbind/comparison_plots/pdbbind-pcgrad.png'
+    # Check if paths provided as arguments
+    if len(sys.argv) > 1:
+        results_path = sys.argv[1]
+        output_path = sys.argv[2] if len(sys.argv) > 2 else 'pareto_plot.png'
+    else:
+        # Default to uploaded file
+        results_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/pdbbind/grid_search/pdbbind_grid_search_results_20260202-174303.json'
+        output_path = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/pytorch-implementation/pdbbind/comparison_plots/pareto_plot-test.png'
     
     # Check if results exist
     if not os.path.exists(results_path):
         print(f"Error: Results not found at {results_path}")
         print("\nUsage:")
-        print("  python plot_pareto_simple.py")
-        print("\nOr with custom paths:")
-        print("  python -c \"from plot_pareto_simple import plot_pareto_simple; "
-              "plot_pareto_simple('my_results.json', 'my_plot.png')\"")
+        print("  python pareto_plot_fixed.py [results.json] [output.png]")
         exit(1)
     
     # Create output directory
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else '.', exist_ok=True)
     
     print("="*70)
-    print("PARETO FRONT PLOTTER")
+    print("PARETO FRONT PLOTTER - PDBBind Edition")
     print("="*70)
     
     # Create plot

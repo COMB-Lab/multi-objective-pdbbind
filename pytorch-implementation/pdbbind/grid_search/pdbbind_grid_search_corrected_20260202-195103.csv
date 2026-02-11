@@ -1,0 +1,2 @@
+physics_weight,train_empirical,train_physics,test_empirical,test_physics,test_mae
+1e-06,45.83726119995117,8.687447547912598,24.731782913208008,10.568453788757324,19.198978424072266

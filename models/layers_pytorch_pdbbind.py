@@ -201,7 +201,7 @@ class ConvLayer(nn.Module):
 
     def _call_single(self, atom_features):
         """
-        Process a single molecule's atom features.
+        Process a single molecule's atom features - VECTORIZED.
 
         Args:
             atom_features: Tensor of shape [num_atoms, num_features]
@@ -209,13 +209,19 @@ class ConvLayer(nn.Module):
         Returns:
             Tensor of shape [out_channel]
         """
-        # Sum over all atoms with tanh activation
-        mol_feature = torch.zeros(self.out_channel, device=atom_features.device)
-
-        for atom_feat in atom_features:
-            transformed = torch.matmul(atom_feat.unsqueeze(0), self.w)  # [1, out_channel]
-            mol_feature += torch.tanh(transformed).squeeze(0)
-
+        # ORIGINAL (slow):
+        # mol_feature = torch.zeros(self.out_channel, device=atom_features.device)
+        # for atom_feat in atom_features:
+        #     transformed = torch.matmul(atom_feat.unsqueeze(0), self.w)
+        #     mol_feature += torch.tanh(transformed).squeeze(0)
+        
+        # VECTORIZED (fast):
+        # Transform all atoms at once: [num_atoms, num_features] @ [num_features, out_channel]
+        transformed = torch.matmul(atom_features, self.w)  # [num_atoms, out_channel]
+        
+        # Apply tanh and sum over atoms
+        mol_feature = torch.sum(torch.tanh(transformed), dim=0)  # [out_channel]
+        
         return mol_feature
 
     def forward(self, inputs):
@@ -233,6 +239,41 @@ class ConvLayer(nn.Module):
             output = self._call_single(mol_features)
             outputs.append(output)
         return torch.stack(outputs)
+
+    # def _call_single(self, atom_features):
+    #     """
+    #     Process a single molecule's atom features.
+
+    #     Args:
+    #         atom_features: Tensor of shape [num_atoms, num_features]
+
+    #     Returns:
+    #         Tensor of shape [out_channel]
+    #     """
+    #     # Sum over all atoms with tanh activation
+    #     mol_feature = torch.zeros(self.out_channel, device=atom_features.device)
+
+    #     for atom_feat in atom_features:
+    #         transformed = torch.matmul(atom_feat.unsqueeze(0), self.w)  # [1, out_channel]
+    #         mol_feature += torch.tanh(transformed).squeeze(0)
+
+    #     return mol_feature
+
+    # def forward(self, inputs):
+    #     """
+    #     Forward pass for a batch of molecules.
+
+    #     Args:
+    #         inputs: List of tensors, each of shape [num_atoms_i, num_features]
+
+    #     Returns:
+    #         Tensor of shape [batch_size, out_channel]
+    #     """
+    #     outputs = []
+    #     for mol_features in inputs:
+    #         output = self._call_single(mol_features)
+    #         outputs.append(output)
+    #     return torch.stack(outputs)
 
 
 class PGGCNModel(nn.Module):

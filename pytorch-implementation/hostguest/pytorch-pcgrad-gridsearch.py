@@ -285,7 +285,7 @@ def train_single_config(X_train, y_train, X_val, y_val, physics_weight, device,
 
 def main():
     print("="*80)
-    print("OVERNIGHT GRID SEARCH - VERBOSE VERSION")
+    print("Grid Search: PCGrad + Adam - 0.01 Step (101 weights)")
     print("Tracking: Train/Val RMSE, Empirical Loss, Physics Loss")
     print("="*80)
     

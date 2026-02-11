@@ -1,0 +1,30 @@
+{
+  "timestamp": "20260211-160513",
+  "total_time_seconds": 10820.824735403061,
+  "avg_time_per_weight": 107.13687856834714,
+  "n_weights_tested": 101,
+  "weight_range": {
+    "min": 0.0,
+    "max": 1.0,
+    "scale": "logarithmic"
+  },
+  "best_mae": {
+    "value": 33.35029220581055,
+    "lambda": 0.01
+  },
+  "best_empirical": {
+    "value": 57.88756561279297,
+    "lambda": 0.87
+  },
+  "best_physics": {
+    "value": 2.371727705001831,
+    "lambda": 0.6
+  },
+  "config": {
+    "learning_rate": 1e-05,
+    "l2_weight": 0.01,
+    "batch_size": 8,
+    "epochs": 250,
+    "random_seed": 50
+  }
+}

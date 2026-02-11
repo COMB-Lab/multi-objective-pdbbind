@@ -1,0 +1,810 @@
+[
+  {
+    "physics_weight": 0.0,
+    "train_empirical": 64.6835708618164,
+    "train_physics": 14.169620513916016,
+    "test_empirical": 76.20623016357422,
+    "test_physics": 18.435144424438477,
+    "test_mae": 43.75288009643555
+  },
+  {
+    "physics_weight": 0.01,
+    "train_empirical": 66.23578643798828,
+    "train_physics": 7.707926273345947,
+    "test_empirical": 71.92474365234375,
+    "test_physics": 9.45625114440918,
+    "test_mae": 42.5269660949707
+  },
+  {
+    "physics_weight": 0.02,
+    "train_empirical": 66.93777465820312,
+    "train_physics": 12.348345756530762,
+    "test_empirical": 74.86964416503906,
+    "test_physics": 33.97637939453125,
+    "test_mae": 45.276023864746094
+  },
+  {
+    "physics_weight": 0.03,
+    "train_empirical": 67.42424011230469,
+    "train_physics": 6.210958480834961,
+    "test_empirical": 74.02294158935547,
+    "test_physics": 11.467803955078125,
+    "test_mae": 43.69253921508789
+  },
+  {
+    "physics_weight": 0.04,
+    "train_empirical": 67.29056549072266,
+    "train_physics": 7.6296186447143555,
+    "test_empirical": 74.56342315673828,
+    "test_physics": 14.498831748962402,
+    "test_mae": 42.920536041259766
+  },
+  {
+    "physics_weight": 0.05,
+    "train_empirical": 66.76416778564453,
+    "train_physics": 8.167530059814453,
+    "test_empirical": 71.60000610351562,
+    "test_physics": 9.432315826416016,
+    "test_mae": 43.07548141479492
+  },
+  {
+    "physics_weight": 0.06,
+    "train_empirical": 67.19097137451172,
+    "train_physics": 5.631217002868652,
+    "test_empirical": 74.4544906616211,
+    "test_physics": 11.445650100708008,
+    "test_mae": 42.97183609008789
+  },
+  {
+    "physics_weight": 0.07,
+    "train_empirical": 67.3543930053711,
+    "train_physics": 4.03225040435791,
+    "test_empirical": 74.49412536621094,
+    "test_physics": 7.677486896514893,
+    "test_mae": 43.67625045776367
+  },
+  {
+    "physics_weight": 0.08,
+    "train_empirical": 68.08140563964844,
+    "train_physics": 7.9876251220703125,
+    "test_empirical": 72.71821594238281,
+    "test_physics": 9.955960273742676,
+    "test_mae": 44.42635726928711
+  },
+  {
+    "physics_weight": 0.09,
+    "train_empirical": 66.40613555908203,
+    "train_physics": 9.209553718566895,
+    "test_empirical": 74.67742919921875,
+    "test_physics": 11.566020011901855,
+    "test_mae": 43.662967681884766
+  },
+  {
+    "physics_weight": 0.1,
+    "train_empirical": 67.64575958251953,
+    "train_physics": 2.786841630935669,
+    "test_empirical": 73.59526824951172,
+    "test_physics": 10.847933769226074,
+    "test_mae": 43.79468536376953
+  },
+  {
+    "physics_weight": 0.11,
+    "train_empirical": 67.35615539550781,
+    "train_physics": 5.058349609375,
+    "test_empirical": 74.50444030761719,
+    "test_physics": 5.1803483963012695,
+    "test_mae": 43.23283767700195
+  },
+  {
+    "physics_weight": 0.12,
+    "train_empirical": 67.82353973388672,
+    "train_physics": 5.509814262390137,
+    "test_empirical": 77.24812316894531,
+    "test_physics": 17.014062881469727,
+    "test_mae": 44.44696044921875
+  },
+  {
+    "physics_weight": 0.13,
+    "train_empirical": 66.66646575927734,
+    "train_physics": 4.216475486755371,
+    "test_empirical": 74.32569885253906,
+    "test_physics": 5.854440689086914,
+    "test_mae": 43.76601028442383
+  },
+  {
+    "physics_weight": 0.14,
+    "train_empirical": 66.7808609008789,
+    "train_physics": 7.003761291503906,
+    "test_empirical": 75.29364013671875,
+    "test_physics": 7.314671516418457,
+    "test_mae": 44.02088928222656
+  },
+  {
+    "physics_weight": 0.15,
+    "train_empirical": 67.59960174560547,
+    "train_physics": 3.5523293018341064,
+    "test_empirical": 77.0685043334961,
+    "test_physics": 8.111698150634766,
+    "test_mae": 43.8776741027832
+  },
+  {
+    "physics_weight": 0.16,
+    "train_empirical": 66.91920471191406,
+    "train_physics": 5.271944999694824,
+    "test_empirical": 73.39894104003906,
+    "test_physics": 9.771997451782227,
+    "test_mae": 43.92600631713867
+  },
+  {
+    "physics_weight": 0.17,
+    "train_empirical": 67.24547576904297,
+    "train_physics": 5.4090471267700195,
+    "test_empirical": 74.35629272460938,
+    "test_physics": 7.25794792175293,
+    "test_mae": 43.15654373168945
+  },
+  {
+    "physics_weight": 0.18,
+    "train_empirical": 66.24386596679688,
+    "train_physics": 5.883667469024658,
+    "test_empirical": 75.8060073852539,
+    "test_physics": 8.886229515075684,
+    "test_mae": 43.93090057373047
+  },
+  {
+    "physics_weight": 0.19,
+    "train_empirical": 67.36763000488281,
+    "train_physics": 4.57107400894165,
+    "test_empirical": 73.93456268310547,
+    "test_physics": 5.319962024688721,
+    "test_mae": 43.49885559082031
+  },
+  {
+    "physics_weight": 0.2,
+    "train_empirical": 66.38980865478516,
+    "train_physics": 6.077939033508301,
+    "test_empirical": 72.48600006103516,
+    "test_physics": 9.03483772277832,
+    "test_mae": 43.6960334777832
+  },
+  {
+    "physics_weight": 0.21,
+    "train_empirical": 67.43147277832031,
+    "train_physics": 4.56867790222168,
+    "test_empirical": 74.77719116210938,
+    "test_physics": 7.249574661254883,
+    "test_mae": 44.184814453125
+  },
+  {
+    "physics_weight": 0.22,
+    "train_empirical": 67.14946746826172,
+    "train_physics": 5.686456203460693,
+    "test_empirical": 74.99232482910156,
+    "test_physics": 9.618945121765137,
+    "test_mae": 44.48237228393555
+  },
+  {
+    "physics_weight": 0.23,
+    "train_empirical": 66.46846008300781,
+    "train_physics": 5.807387828826904,
+    "test_empirical": 73.76638793945312,
+    "test_physics": 7.548976421356201,
+    "test_mae": 43.72137451171875
+  },
+  {
+    "physics_weight": 0.24,
+    "train_empirical": 67.05370330810547,
+    "train_physics": 6.958263397216797,
+    "test_empirical": 75.30219268798828,
+    "test_physics": 8.114575386047363,
+    "test_mae": 43.28998947143555
+  },
+  {
+    "physics_weight": 0.25,
+    "train_empirical": 65.47466278076172,
+    "train_physics": 7.944821834564209,
+    "test_empirical": 74.60480499267578,
+    "test_physics": 11.047548294067383,
+    "test_mae": 42.92277145385742
+  },
+  {
+    "physics_weight": 0.26,
+    "train_empirical": 67.23925018310547,
+    "train_physics": 3.7800538539886475,
+    "test_empirical": 76.76895904541016,
+    "test_physics": 7.876789093017578,
+    "test_mae": 44.17374038696289
+  },
+  {
+    "physics_weight": 0.27,
+    "train_empirical": 67.992919921875,
+    "train_physics": 4.022682189941406,
+    "test_empirical": 74.81761932373047,
+    "test_physics": 6.712649822235107,
+    "test_mae": 43.168216705322266
+  },
+  {
+    "physics_weight": 0.28,
+    "train_empirical": 66.50712585449219,
+    "train_physics": 5.725101947784424,
+    "test_empirical": 73.12184143066406,
+    "test_physics": 10.091306686401367,
+    "test_mae": 42.96043014526367
+  },
+  {
+    "physics_weight": 0.29,
+    "train_empirical": 66.1144027709961,
+    "train_physics": 8.240206718444824,
+    "test_empirical": 74.32354736328125,
+    "test_physics": 9.51716423034668,
+    "test_mae": 42.601219177246094
+  },
+  {
+    "physics_weight": 0.3,
+    "train_empirical": 67.02696990966797,
+    "train_physics": 3.8676376342773438,
+    "test_empirical": 76.19538879394531,
+    "test_physics": 10.04297924041748,
+    "test_mae": 44.950077056884766
+  },
+  {
+    "physics_weight": 0.31,
+    "train_empirical": 67.07592010498047,
+    "train_physics": 5.2131195068359375,
+    "test_empirical": 74.76130676269531,
+    "test_physics": 4.341154098510742,
+    "test_mae": 42.80528259277344
+  },
+  {
+    "physics_weight": 0.32,
+    "train_empirical": 66.05549621582031,
+    "train_physics": 5.968230247497559,
+    "test_empirical": 75.79187774658203,
+    "test_physics": 6.072190761566162,
+    "test_mae": 44.343711853027344
+  },
+  {
+    "physics_weight": 0.33,
+    "train_empirical": 67.64800262451172,
+    "train_physics": 3.846855878829956,
+    "test_empirical": 77.59300994873047,
+    "test_physics": 8.098082542419434,
+    "test_mae": 43.83750915527344
+  },
+  {
+    "physics_weight": 0.34,
+    "train_empirical": 67.55842590332031,
+    "train_physics": 5.391085624694824,
+    "test_empirical": 76.03260803222656,
+    "test_physics": 5.809730529785156,
+    "test_mae": 43.28718185424805
+  },
+  {
+    "physics_weight": 0.35000000000000003,
+    "train_empirical": 67.10826110839844,
+    "train_physics": 3.908052682876587,
+    "test_empirical": 77.17556762695312,
+    "test_physics": 6.778861045837402,
+    "test_mae": 43.95188522338867
+  },
+  {
+    "physics_weight": 0.36,
+    "train_empirical": 66.8160400390625,
+    "train_physics": 7.209778308868408,
+    "test_empirical": 74.41136932373047,
+    "test_physics": 10.259069442749023,
+    "test_mae": 43.2487678527832
+  },
+  {
+    "physics_weight": 0.37,
+    "train_empirical": 67.52391815185547,
+    "train_physics": 2.539034366607666,
+    "test_empirical": 73.96910095214844,
+    "test_physics": 2.496293067932129,
+    "test_mae": 43.35321807861328
+  },
+  {
+    "physics_weight": 0.38,
+    "train_empirical": 67.03271484375,
+    "train_physics": 3.2481155395507812,
+    "test_empirical": 75.45064544677734,
+    "test_physics": 5.711006164550781,
+    "test_mae": 43.90130615234375
+  },
+  {
+    "physics_weight": 0.39,
+    "train_empirical": 67.10009002685547,
+    "train_physics": 5.145805358886719,
+    "test_empirical": 75.0711898803711,
+    "test_physics": 10.863243103027344,
+    "test_mae": 43.715511322021484
+  },
+  {
+    "physics_weight": 0.4,
+    "train_empirical": 66.50023651123047,
+    "train_physics": 7.425382137298584,
+    "test_empirical": 73.8872299194336,
+    "test_physics": 6.5502448081970215,
+    "test_mae": 43.44493103027344
+  },
+  {
+    "physics_weight": 0.41000000000000003,
+    "train_empirical": 67.52793884277344,
+    "train_physics": 4.4661712646484375,
+    "test_empirical": 75.83905029296875,
+    "test_physics": 9.8441162109375,
+    "test_mae": 43.86095428466797
+  },
+  {
+    "physics_weight": 0.42,
+    "train_empirical": 66.87635803222656,
+    "train_physics": 5.95050573348999,
+    "test_empirical": 74.11109161376953,
+    "test_physics": 8.532086372375488,
+    "test_mae": 43.582210540771484
+  },
+  {
+    "physics_weight": 0.43,
+    "train_empirical": 67.00336456298828,
+    "train_physics": 4.002162933349609,
+    "test_empirical": 74.36348724365234,
+    "test_physics": 3.7725250720977783,
+    "test_mae": 43.27873992919922
+  },
+  {
+    "physics_weight": 0.44,
+    "train_empirical": 66.41902923583984,
+    "train_physics": 8.533883094787598,
+    "test_empirical": 71.36833190917969,
+    "test_physics": 9.792901039123535,
+    "test_mae": 43.002357482910156
+  },
+  {
+    "physics_weight": 0.45,
+    "train_empirical": 67.28243255615234,
+    "train_physics": 2.8101701736450195,
+    "test_empirical": 74.45687103271484,
+    "test_physics": 3.4482319355010986,
+    "test_mae": 43.55297088623047
+  },
+  {
+    "physics_weight": 0.46,
+    "train_empirical": 66.89530944824219,
+    "train_physics": 4.594189643859863,
+    "test_empirical": 71.35052490234375,
+    "test_physics": 14.753273963928223,
+    "test_mae": 42.235164642333984
+  },
+  {
+    "physics_weight": 0.47000000000000003,
+    "train_empirical": 67.00016784667969,
+    "train_physics": 6.689340114593506,
+    "test_empirical": 75.66377258300781,
+    "test_physics": 9.282626152038574,
+    "test_mae": 44.31515121459961
+  },
+  {
+    "physics_weight": 0.48,
+    "train_empirical": 67.42616271972656,
+    "train_physics": 4.2517619132995605,
+    "test_empirical": 77.17938995361328,
+    "test_physics": 13.733304977416992,
+    "test_mae": 45.030155181884766
+  },
+  {
+    "physics_weight": 0.49,
+    "train_empirical": 67.37158203125,
+    "train_physics": 2.98635196685791,
+    "test_empirical": 76.25910186767578,
+    "test_physics": 8.563642501831055,
+    "test_mae": 44.161949157714844
+  },
+  {
+    "physics_weight": 0.5,
+    "train_empirical": 66.807861328125,
+    "train_physics": 6.488100051879883,
+    "test_empirical": 73.83778381347656,
+    "test_physics": 19.79354476928711,
+    "test_mae": 44.45155715942383
+  },
+  {
+    "physics_weight": 0.51,
+    "train_empirical": 66.7323989868164,
+    "train_physics": 6.122775077819824,
+    "test_empirical": 74.8694076538086,
+    "test_physics": 7.011841297149658,
+    "test_mae": 43.62190246582031
+  },
+  {
+    "physics_weight": 0.52,
+    "train_empirical": 66.75176239013672,
+    "train_physics": 5.653756618499756,
+    "test_empirical": 76.94868469238281,
+    "test_physics": 9.651668548583984,
+    "test_mae": 45.211814880371094
+  },
+  {
+    "physics_weight": 0.53,
+    "train_empirical": 67.42587280273438,
+    "train_physics": 2.6251578330993652,
+    "test_empirical": 75.50023651123047,
+    "test_physics": 5.35213041305542,
+    "test_mae": 44.1677131652832
+  },
+  {
+    "physics_weight": 0.54,
+    "train_empirical": 66.5616226196289,
+    "train_physics": 5.671010494232178,
+    "test_empirical": 72.12738037109375,
+    "test_physics": 8.609770774841309,
+    "test_mae": 43.05411148071289
+  },
+  {
+    "physics_weight": 0.55,
+    "train_empirical": 66.7974853515625,
+    "train_physics": 4.32301139831543,
+    "test_empirical": 73.89969635009766,
+    "test_physics": 6.168866157531738,
+    "test_mae": 43.415950775146484
+  },
+  {
+    "physics_weight": 0.56,
+    "train_empirical": 67.11229705810547,
+    "train_physics": 4.731288433074951,
+    "test_empirical": 74.19670104980469,
+    "test_physics": 5.198371887207031,
+    "test_mae": 43.25977325439453
+  },
+  {
+    "physics_weight": 0.5700000000000001,
+    "train_empirical": 67.27417755126953,
+    "train_physics": 4.104095458984375,
+    "test_empirical": 74.57414245605469,
+    "test_physics": 6.616231441497803,
+    "test_mae": 43.847957611083984
+  },
+  {
+    "physics_weight": 0.58,
+    "train_empirical": 67.49880981445312,
+    "train_physics": 2.55836820602417,
+    "test_empirical": 74.9582290649414,
+    "test_physics": 2.428021192550659,
+    "test_mae": 43.353275299072266
+  },
+  {
+    "physics_weight": 0.59,
+    "train_empirical": 67.04459381103516,
+    "train_physics": 3.0508673191070557,
+    "test_empirical": 73.68379211425781,
+    "test_physics": 6.95320987701416,
+    "test_mae": 42.596961975097656
+  },
+  {
+    "physics_weight": 0.6,
+    "train_empirical": 67.53512573242188,
+    "train_physics": 3.3336312770843506,
+    "test_empirical": 72.9011459350586,
+    "test_physics": 11.685857772827148,
+    "test_mae": 43.30426788330078
+  },
+  {
+    "physics_weight": 0.61,
+    "train_empirical": 67.41793823242188,
+    "train_physics": 3.0082600116729736,
+    "test_empirical": 75.3316421508789,
+    "test_physics": 3.4634811878204346,
+    "test_mae": 43.91965866088867
+  },
+  {
+    "physics_weight": 0.62,
+    "train_empirical": 67.49568939208984,
+    "train_physics": 3.102781295776367,
+    "test_empirical": 75.38606262207031,
+    "test_physics": 7.529007911682129,
+    "test_mae": 44.246028900146484
+  },
+  {
+    "physics_weight": 0.63,
+    "train_empirical": 67.33075714111328,
+    "train_physics": 4.10638952255249,
+    "test_empirical": 75.9554214477539,
+    "test_physics": 9.885675430297852,
+    "test_mae": 44.98166275024414
+  },
+  {
+    "physics_weight": 0.64,
+    "train_empirical": 67.18376922607422,
+    "train_physics": 3.509481430053711,
+    "test_empirical": 75.1375732421875,
+    "test_physics": 9.08785629272461,
+    "test_mae": 44.56245040893555
+  },
+  {
+    "physics_weight": 0.65,
+    "train_empirical": 67.89530944824219,
+    "train_physics": 3.8950817584991455,
+    "test_empirical": 74.11669158935547,
+    "test_physics": 8.90175724029541,
+    "test_mae": 43.03835678100586
+  },
+  {
+    "physics_weight": 0.66,
+    "train_empirical": 67.62750244140625,
+    "train_physics": 1.8516920804977417,
+    "test_empirical": 73.91224670410156,
+    "test_physics": 3.0642800331115723,
+    "test_mae": 42.995750427246094
+  },
+  {
+    "physics_weight": 0.67,
+    "train_empirical": 67.36090087890625,
+    "train_physics": 2.280388116836548,
+    "test_empirical": 75.2844467163086,
+    "test_physics": 8.18048095703125,
+    "test_mae": 44.09522247314453
+  },
+  {
+    "physics_weight": 0.68,
+    "train_empirical": 67.28398895263672,
+    "train_physics": 2.8603172302246094,
+    "test_empirical": 73.6588134765625,
+    "test_physics": 9.792678833007812,
+    "test_mae": 44.22499084472656
+  },
+  {
+    "physics_weight": 0.6900000000000001,
+    "train_empirical": 67.08757019042969,
+    "train_physics": 3.276007652282715,
+    "test_empirical": 73.80345153808594,
+    "test_physics": 9.421760559082031,
+    "test_mae": 43.99146270751953
+  },
+  {
+    "physics_weight": 0.7000000000000001,
+    "train_empirical": 67.2853775024414,
+    "train_physics": 4.154183387756348,
+    "test_empirical": 74.4637680053711,
+    "test_physics": 5.634706497192383,
+    "test_mae": 43.50637435913086
+  },
+  {
+    "physics_weight": 0.71,
+    "train_empirical": 67.57035064697266,
+    "train_physics": 4.029737949371338,
+    "test_empirical": 77.52413177490234,
+    "test_physics": 7.5364203453063965,
+    "test_mae": 43.68121337890625
+  },
+  {
+    "physics_weight": 0.72,
+    "train_empirical": 67.61967468261719,
+    "train_physics": 3.249356746673584,
+    "test_empirical": 77.12551879882812,
+    "test_physics": 7.083755970001221,
+    "test_mae": 44.17253494262695
+  },
+  {
+    "physics_weight": 0.73,
+    "train_empirical": 67.56282043457031,
+    "train_physics": 5.32676362991333,
+    "test_empirical": 73.64507293701172,
+    "test_physics": 5.967220306396484,
+    "test_mae": 42.867637634277344
+  },
+  {
+    "physics_weight": 0.74,
+    "train_empirical": 67.2272720336914,
+    "train_physics": 3.6285574436187744,
+    "test_empirical": 75.25423431396484,
+    "test_physics": 5.999913215637207,
+    "test_mae": 44.074066162109375
+  },
+  {
+    "physics_weight": 0.75,
+    "train_empirical": 67.2003173828125,
+    "train_physics": 5.06991720199585,
+    "test_empirical": 74.55162048339844,
+    "test_physics": 5.159307479858398,
+    "test_mae": 42.679203033447266
+  },
+  {
+    "physics_weight": 0.76,
+    "train_empirical": 67.15767669677734,
+    "train_physics": 5.016395092010498,
+    "test_empirical": 76.05061340332031,
+    "test_physics": 7.881003379821777,
+    "test_mae": 43.63676834106445
+  },
+  {
+    "physics_weight": 0.77,
+    "train_empirical": 67.64869689941406,
+    "train_physics": 2.0284299850463867,
+    "test_empirical": 75.41666412353516,
+    "test_physics": 5.462250232696533,
+    "test_mae": 44.357810974121094
+  },
+  {
+    "physics_weight": 0.78,
+    "train_empirical": 67.01089477539062,
+    "train_physics": 5.798768997192383,
+    "test_empirical": 76.14359283447266,
+    "test_physics": 7.959427833557129,
+    "test_mae": 43.52738571166992
+  },
+  {
+    "physics_weight": 0.79,
+    "train_empirical": 67.461669921875,
+    "train_physics": 2.351393461227417,
+    "test_empirical": 74.57969665527344,
+    "test_physics": 2.1696407794952393,
+    "test_mae": 43.05301284790039
+  },
+  {
+    "physics_weight": 0.8,
+    "train_empirical": 67.01332092285156,
+    "train_physics": 3.7036702632904053,
+    "test_empirical": 72.85028076171875,
+    "test_physics": 9.525895118713379,
+    "test_mae": 43.725955963134766
+  },
+  {
+    "physics_weight": 0.81,
+    "train_empirical": 68.03723907470703,
+    "train_physics": 5.073066711425781,
+    "test_empirical": 72.72059631347656,
+    "test_physics": 8.20290470123291,
+    "test_mae": 42.15929412841797
+  },
+  {
+    "physics_weight": 0.8200000000000001,
+    "train_empirical": 66.93544006347656,
+    "train_physics": 3.562300205230713,
+    "test_empirical": 73.19435119628906,
+    "test_physics": 3.710294008255005,
+    "test_mae": 42.59785461425781
+  },
+  {
+    "physics_weight": 0.8300000000000001,
+    "train_empirical": 67.32383728027344,
+    "train_physics": 2.798325777053833,
+    "test_empirical": 74.64678192138672,
+    "test_physics": 4.742424011230469,
+    "test_mae": 43.807334899902344
+  },
+  {
+    "physics_weight": 0.84,
+    "train_empirical": 67.57171630859375,
+    "train_physics": 2.4406790733337402,
+    "test_empirical": 74.89842987060547,
+    "test_physics": 2.672152519226074,
+    "test_mae": 43.44755935668945
+  },
+  {
+    "physics_weight": 0.85,
+    "train_empirical": 67.33758544921875,
+    "train_physics": 4.438663959503174,
+    "test_empirical": 75.1139907836914,
+    "test_physics": 6.888571262359619,
+    "test_mae": 43.698612213134766
+  },
+  {
+    "physics_weight": 0.86,
+    "train_empirical": 67.59933471679688,
+    "train_physics": 3.2492449283599854,
+    "test_empirical": 74.70124816894531,
+    "test_physics": 3.815359592437744,
+    "test_mae": 42.75703048706055
+  },
+  {
+    "physics_weight": 0.87,
+    "train_empirical": 66.98881530761719,
+    "train_physics": 4.702948093414307,
+    "test_empirical": 74.39969635009766,
+    "test_physics": 6.155213356018066,
+    "test_mae": 43.54345703125
+  },
+  {
+    "physics_weight": 0.88,
+    "train_empirical": 67.03931427001953,
+    "train_physics": 4.278372764587402,
+    "test_empirical": 74.651611328125,
+    "test_physics": 3.314140796661377,
+    "test_mae": 43.276248931884766
+  },
+  {
+    "physics_weight": 0.89,
+    "train_empirical": 67.38323974609375,
+    "train_physics": 2.7724270820617676,
+    "test_empirical": 75.05200958251953,
+    "test_physics": 5.236543655395508,
+    "test_mae": 43.42292022705078
+  },
+  {
+    "physics_weight": 0.9,
+    "train_empirical": 67.29376983642578,
+    "train_physics": 2.703399419784546,
+    "test_empirical": 75.74752807617188,
+    "test_physics": 4.469082832336426,
+    "test_mae": 43.78757858276367
+  },
+  {
+    "physics_weight": 0.91,
+    "train_empirical": 67.09495544433594,
+    "train_physics": 4.834187030792236,
+    "test_empirical": 72.93971252441406,
+    "test_physics": 7.600179195404053,
+    "test_mae": 43.09265899658203
+  },
+  {
+    "physics_weight": 0.92,
+    "train_empirical": 67.42835235595703,
+    "train_physics": 2.6301774978637695,
+    "test_empirical": 74.98538970947266,
+    "test_physics": 3.884470224380493,
+    "test_mae": 43.71344757080078
+  },
+  {
+    "physics_weight": 0.93,
+    "train_empirical": 66.84817504882812,
+    "train_physics": 3.977607250213623,
+    "test_empirical": 75.63368225097656,
+    "test_physics": 8.090828895568848,
+    "test_mae": 43.9822883605957
+  },
+  {
+    "physics_weight": 0.9400000000000001,
+    "train_empirical": 67.70417785644531,
+    "train_physics": 7.589704513549805,
+    "test_empirical": 75.11940002441406,
+    "test_physics": 6.330982208251953,
+    "test_mae": 44.080970764160156
+  },
+  {
+    "physics_weight": 0.9500000000000001,
+    "train_empirical": 67.03089904785156,
+    "train_physics": 3.0991523265838623,
+    "test_empirical": 74.90062713623047,
+    "test_physics": 10.228254318237305,
+    "test_mae": 43.80958938598633
+  },
+  {
+    "physics_weight": 0.96,
+    "train_empirical": 67.58122253417969,
+    "train_physics": 2.7669641971588135,
+    "test_empirical": 75.6230697631836,
+    "test_physics": 6.071260929107666,
+    "test_mae": 44.27921676635742
+  },
+  {
+    "physics_weight": 0.97,
+    "train_empirical": 67.5218734741211,
+    "train_physics": 5.47594690322876,
+    "test_empirical": 73.34257507324219,
+    "test_physics": 11.849785804748535,
+    "test_mae": 42.69595718383789
+  },
+  {
+    "physics_weight": 0.98,
+    "train_empirical": 66.42342376708984,
+    "train_physics": 5.589132785797119,
+    "test_empirical": 74.27986145019531,
+    "test_physics": 5.58180570602417,
+    "test_mae": 43.34194564819336
+  },
+  {
+    "physics_weight": 0.99,
+    "train_empirical": 67.20183563232422,
+    "train_physics": 3.0146567821502686,
+    "test_empirical": 74.77301025390625,
+    "test_physics": 10.0127534866333,
+    "test_mae": 44.21961212158203
+  },
+  {
+    "physics_weight": 1.0,
+    "train_empirical": 67.52055358886719,
+    "train_physics": 3.568986654281616,
+    "test_empirical": 75.52275085449219,
+    "test_physics": 5.105820655822754,
+    "test_mae": 43.24909591674805
+  }
+]

@@ -21,4 +21,4 @@ conda create --file pytorch-env.yml
 This repository uses the PDBind Dataset.
 
 ## References
-Juypter Notebooks
+Juypter Notebooks can be found in the Examples folder. Start from QuickStart-Part1.ipynb.

@@ -10,20 +10,21 @@ conda create --file pytorch-env.yml
 
 ## Usage
 
-# PDBbind Dataset
+**PDBbind Dataset**
 1. First Run the PCgrad-grid-search-pdbbind.py script to search for ideal physics weights for training. 
 
 2. Run Preato-Front-With-table-new.py searches for the Preato Front of the Physics weights that had been searbed for in the grid search. Make sure to modify line 44 to run the desired subset.
-'''
-
-'''
+```
+ # CHANGE THIS to switch dataset size: 100, 250, 500, 1000, 1500, 2000, 2660
+SUBSET_SIZE = 100
+```
 3. (Optional) Configure the subset size in pdbbind_three_way_testing.py to match the subset size in step 1.
 ```
     SPLIT_PATH = '/home/exouser/multi-objective-pdbbind/multi-objective-pdbbind/Datasets/subsets/pdbbind_subset_100.pkl'
 ```
 4. Run pdbbind_three_way_testing.py this will train using the physics weights.
 
-# HostGuest Dataset
+**HostGuest Dataset**
 1. Run grid_search_w_normailization.py
 2. Run pareto-front-hostguest.py to get the knee of the graph
 3. Run test-all-with-normalization.py

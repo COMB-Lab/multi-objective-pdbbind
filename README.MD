@@ -36,4 +36,4 @@ SUBSET_SIZE = 100
 This repository uses the PDBind Refined v.2015 and HostGuest Systems Dataset.
 
 ## References
-Juypter Notebooks can be found in the Examples folder. Start from QuickStart-Part1.ipynb.
+Juypter Notebooks demonstrating the pareto front charts can be found in the Examples folder. 

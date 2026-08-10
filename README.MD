@@ -3,7 +3,7 @@
 This is the repository for Physics-Guided Rule-Based Graph Convolutional Network(PG-RGCN) Model that uses Multi Objective Optimization models such as PCGrad and GCond to assist in drug discovery. PG-RGCN represents molecular complexes as graphs with atoms as nodes and covelent bonds as edges and the introduction of multi objective loss functions.
 
 ## PCGrad vs. GCond
-[This figure](https://COMB-Lab.github.io/multi-objective-pdbbind/figure/your-file.html) compares how PCGrad and GCond each detect and resolve conflicting gradients between empirical and physics-consistency loss terms, side by side.
+[This figure](https://COMB-Lab.github.io/multi-objective-pdbbind/pcgrad_vs_gcond.html) compares how PCGrad and GCond each detect and resolve conflicting gradients between empirical and physics-consistency loss terms. PCGrad applies a symmetric hard projection whenever two gradients conflict, while GCond uses an arbitrated, severity-scaled correction based on continuous conflict thresholds rather than a single binary cutoff.
 
 ##  Installation
 Included is the Conda Yml used to install all required dependencies for the Repository via the following:

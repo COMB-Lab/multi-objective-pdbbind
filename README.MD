@@ -1,5 +1,5 @@
 # Multi Objective PDBBind
-![image](/figure/Physics-Guided%20Rule-based%20Graph%20Convolutional%20Network%20(PRGCN)%20with%20Multi-Objective%20Loss%20Function.jpg)
+![image](/figure/Multi-Objective Optimization for Binding Free Energy Model Figure 1.jpg)
 This is the repository for Physics-Guided Rule-Based Graph Convolutional Network(PG-RGCN) Model that uses Multi Objective Optimization models such as PCGrad and GCond to assist in drug discovery. PG-RGCN represents molecular complexes as graphs with atoms as nodes and covelent bonds as edges and the introduction of multi objective loss functions.
 
 ##  Installation
